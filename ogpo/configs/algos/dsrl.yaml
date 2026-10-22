@@ -1,0 +1,36 @@
+# =============================================================================
+# DSRL (Best-of-N) Configuration
+# =============================================================================
+# Diffusion-based RL with Best-of-N action selection
+
+_base_: common.yaml
+
+agent:
+  # Identification
+  agent_name: dsrl_bon
+
+  # DSRL-specific learning rates
+  lr_actor: 3e-4
+  lr_critic: 3e-4
+  lr_actor_bc_flow: 3e-4
+
+  # Optimizer types
+  optimizer_actor: adam
+  optimizer_critic: adam
+  optimizer_actor_bc_flow: adam
+
+  # DSRL-specific parameters
+  action_magnitude: 1.0
+  noise_chunk_length: -1
+  num_action_samples: 16
+  bc_coeff: 0.1
+
+  # SAC-specific hyperparameters
+  init_temperature: 1.0
+  target_entropy: null
+
+  # HLGauss (kept for compatibility)
+  entropy_backup: false
+
+  # Flow steps
+  flow_steps: 10

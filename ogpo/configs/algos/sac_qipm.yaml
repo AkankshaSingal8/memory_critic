@@ -1,0 +1,56 @@
+_base_: common.yaml
+
+experiment:
+  project: SAC_QIPM
+
+training:
+  offline_steps: 500000
+  calql_steps: 0
+  q_warmup_steps: 10000
+  bc_refine_steps: 0
+  online_steps: 1000000
+
+bc:
+  clip_bc: false
+
+success_buffer:
+  use_success_buffer: false
+
+agent:
+  agent_name: sac_qipm
+
+  # Critic-side joint proprio, opt-in (2026-08-10, the SAC line's "base +
+  # proprio critics" control — the missing cell of the {safety heads x
+  # proprio} 2x2). true = widen the robomimic low_dim obs with
+  # robot0_joint_pos/vel so the CRITICS see q/q̇ (velocity and arm
+  # configuration that the eef-centric keys lack), exactly as the
+  # sac_safe_qipm family always does. Robomimic single-robot low_dim only;
+  # requires actor_obs_dim (asserted in ogpo/main.py). Checkpoints go under
+  # the separate rolling-checkpoint key "sac_qipm_proprio" so 53- and 67-dim
+  # runs never cross-load. sac_safe_qipm.yaml redeclares both keys (child
+  # wins), so this default never reaches the safety fork.
+  critic_joint_proprio: false
+  # Actor's view of the observation: leading actor_obs_dim dims (null = full).
+  # The joint-proprio widening is for the critics; the offline demos' joint
+  # dims are recorded under the original OSC controller while eval runs under
+  # mink — OOD for the actor, which degrades during BC if it conditions on
+  # them (2026-07-27 safe_qipm post-mortem). Toolhang launcher sets 53
+  # (eef+gripper+object). Critics always see full width.
+  actor_obs_dim: null
+
+  best_of_n: 1
+  critic_loss_type: mse
+  no_of_subtasks: 4
+  use_dense_rewards: true
+  normalize_rewards: false
+  goal_conditioning_mode: null
+  goal_conditioned_actor: true
+  goal_conditioned_critic: true
+  goal_embed_dim: 32
+  advantage_gating_mode: grandparent_future
+  # MIP-Q (off by default; opt-in via slurm flag)
+  use_mip_q: false
+  mip_q_ensemble: true
+  mip_q_noise_scale: 1.0
+  mip_q_t_star: 0.9
+  num_ensemble_members: 10

@@ -1,0 +1,28 @@
+_base_: learned_lambda_safe_qipm.yaml
+
+# Multi-head variant of learned_lambda_safe_qipm: one always-active CMDP cost
+# head per SAFETY CONSTRAINT, instead of a single head fed by the aggregate
+# unsafe bit. The
+# critic still carries no_of_subtasks + no_of_safety_subtasks heads on a shared
+# backbone and the scalarization is unchanged:
+#   Q_total = sum_task gate_s*Q_s + sum_k lambda_k(s) Q^safety_k
+# K=4 here is what makes Lambda a 4x4 matrix rather than a column.
+#
+# Everything except the safety block is inherited from
+# learned_lambda_safe_qipm.yaml, so the two arms are identical by construction
+# — do NOT copy other keys down here.
+
+agent:
+  # Registry key, NOT the filename: main.py resolves the agent class (and every
+  # `algo_name == "learned_lambda_safe_qipm"` branch) from agent_name.
+  agent_name: learned_lambda_safe_qipm
+
+  safety_head_mode: multi
+
+  # Must equal the number of constraint families the composite controller
+  # publishes in info['safety_constraints'] — asserted at env setup, before the
+  # buffer and critic are sized. 4 for the toolhang safe controller configs:
+  #   ['joint_limits', 'velocity', 'collision', 'workspace']
+  # (keepout is absent because keepout_boxes is null there). A controller JSON
+  # with a different safety_config needs this value updated to match.
+  no_of_safety_subtasks: 4

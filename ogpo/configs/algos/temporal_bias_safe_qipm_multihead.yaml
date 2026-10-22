@@ -1,0 +1,18 @@
+_base_: safe_qipm_multihead.yaml
+
+# Temporal-bias min/max-ReLU arm (ogpo/agents/temporal_bias_safe_qipm.py).
+# Identical to the safe_qipm multi-head arm except for how the K safety heads
+# are fused into the actor's objective:
+#   q_k(j) = min_m Q_k^m(s_{t+j}, a_{t+j:t+j+H})   (target critic, j < n)
+#   m_k    = mean_j q_k(j)  over valid steps       (stop-gradient)
+#   tol_k  = clip(-m_k, 0, safety_margin_cap)
+#   safety = min(0, max_k (Q_k + tol_k))
+# Everything else is inherited — do NOT copy other keys down here.
+
+agent:
+  agent_name: temporal_bias_safe_qipm
+  safety_agg: temporal_capped_max_relu
+  q_agg: min
+  # n: number of consecutive chunk starts averaged into m_k. 8 = horizon_length,
+  # so the bias covers the same span the safety TD target composes over.
+  safety_bias_window: 8

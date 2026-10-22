@@ -1,0 +1,56 @@
+_base_: sac_qipm.yaml
+
+# SAC + Q-IPM with always-active safety Q-heads — the SAC-line counterpart of
+# safe_qipm.yaml, replicating its design decisions exactly (see
+# ogpo/agents/sac_safe_qipm.py and
+# docs/changes/2026-08-10-sac-safe-qipm-safety-heads/).
+#
+# Two inherited base keys are load-bearing here:
+#   use_dense_rewards: true (sac_qipm.yaml) — configure_safety_status is
+#     nested inside main.py's dense-reward block, so turning this off makes
+#     the safety columns silently all-zero (safe_qipm.yaml's default false is
+#     exactly that trap; this algo inherits true — keep it).
+#   critic_loss_type: mse (sac_qipm.yaml) — keeps the categorical-critic
+#     support-grid guard in create() inert.
+
+agent:
+  agent_name: sac_safe_qipm
+
+  # Always-active safety Q-heads (the sac_safe_qipm extension). The critic has
+  # no_of_subtasks + no_of_safety_subtasks heads on a shared backbone; the env
+  # wrapper appends the per-step unsafe flag(s) as trailing subtask_status
+  # columns. Safety heads are never gated:
+  #   Q_total = sum_task gate_s*Q_s + safety_coeff * sum_safety Q_k
+  no_of_safety_subtasks: 1
+  safety_coeff: 1.0
+  safety_discount: 0.99  # discount for the safety cost backup (task heads use discount). 0.99, NOT 0.999 — at 0.999 the heads measurably run away downward (see scripts/safe_qipm/toolhang.sh).
+  # Source of the safety cost columns:
+  #   "single" — one column from info['unsafe_step'] (the aggregate unsafe bit);
+  #              requires no_of_safety_subtasks == 1.
+  #   "multi"  — K columns from info['safety_violations'], the per-constraint 0/1
+  #              decomposition; no_of_safety_subtasks must equal the number of
+  #              constraints the controller publishes (asserted at env setup).
+  # See configs/algos/sac_safe_qipm_multihead.yaml for the multi-head setup.
+  safety_head_mode: single
+
+  # Critic-side joint proprio (default ON for the family): widen the low_dim
+  # obs with robot0_joint_pos + robot0_joint_vel so the safety critics see
+  # q/q̇ — the joint_limits/velocity/collision signals are functions of them
+  # and the eef-centric keys contain no velocities at all. true matches the
+  # safe_qipm family's 67-dim contract so the SAC arm stays directly
+  # comparable. Set false for the heads-without-proprio ablation (safety from
+  # state+action-chunk only); opt-out runs checkpoint under a separate
+  # *_noproprio key so 53- and 67-dim state can never cross-load at the same
+  # seed+env. Inherited by sac_safe_qipm_multihead.yaml — declare the family
+  # default only here (the base sac_qipm.yaml declares the opt-in default
+  # false; child wins in the _base_ merge).
+  critic_joint_proprio: true
+
+  # Actor's view of the observation: leading actor_obs_dim dims (null = full).
+  # With critic_joint_proprio on, the CRITICS consume the widened obs, but the
+  # offline demos' joint dims are recorded under the original OSC controller
+  # while eval runs under mink — OOD for the actor, which degrades during BC
+  # if it conditions on them (2026-07-27 v2 post-mortem). Toolhang launcher
+  # sets 53 (eef+gripper+object); with the opt-out that equals the full width
+  # and the slice is a value-identity.
+  actor_obs_dim: null

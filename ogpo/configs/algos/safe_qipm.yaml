@@ -1,0 +1,269 @@
+_base_: common.yaml
+
+experiment:
+  project: QIPM
+
+agent:
+  agent_name: safe_qipm
+
+  # Q-IPM specific (no_of_subtasks = TASK head count only; safety heads below)
+  no_of_subtasks: 3
+  use_dense_rewards: false
+  normalize_rewards: false
+  subtask_based_discount: false
+  subtask_discounts: null  # TASK-only per-subtask discounts, e.g. [0.9, 0.99, 0.995, 0.999]
+  td_loss_mode: gated  # v1: only "gated" is supported (asserted in create())
+  advantage_gating_mode: grandparent_future  # "goal_myopic", "goal_future", "grandparent_myopic", or "grandparent_future"
+  subtask_dag: null  # Dict[int, List[int]] over TASK heads only. null = sequential gating.
+  use_subtask_dag: true  # Auto-set DAG for tasks with known DAG structure (e.g., transport). Set false to force sequential.
+
+  # Always-active safety Q-heads (the safe_qipm extension). The critic has
+  # no_of_subtasks + no_of_safety_subtasks heads on a shared backbone; the env
+  # wrapper appends the per-step unsafe flag(s) as trailing subtask_status
+  # columns. Safety heads are never gated. How the K safety heads and the M
+  # ensemble members collapse into the single safety term is chosen by
+  # safety_aggregation_strategy (the task term is identical either way):
+  #   "simple_summation" (default; the behavior of every run before
+  #                       2026-08-13, bit-identical)
+  #     Q_total = sum_task gate_s*Q_s + safety_coeff * sum_safety Q_k
+  #     The ensemble is reduced first by q_agg, exactly like the task heads,
+  #     and the K per-head values are then SUMMED — so the safety pressure
+  #     scales with K (multi ran ~2.4x single's at equal safety_coeff) and an
+  #     optimistic member is averaged together with a pessimistic one.
+  #   "min_max"
+  #     Q_total = sum_task gate_s*Q_s
+  #               + safety_coeff * min_k ( max_{m : Q_km <= 0} Q_km )
+  #     Per head, the MAX over the ensemble members whose value is <= 0 (a
+  #     positive cost-Q is a mathematically invalid estimate — the true
+  #     cost-Q is <= 0 identically — so positive members are ignored; a head
+  #     with NO valid member contributes exactly 0.0, the cost-Q upper
+  #     bound). Then the MIN across heads: the worst-violated constraint
+  #     alone sets the pressure, which makes safety_coeff K-independent.
+  #     The members are the same (possibly subsampled) set the task-side
+  #     reduction used, so q_agg='subsample' / subsample_bon still subsample.
+  #     Implemented on five reachable scalarization sites: safe_qipm's own
+  #     three (advantages, sample_actions_BON, get_q_values) and — since
+  #     2026-08-14 — the two FQL one-step sites in
+  #     agents/modules/fql_helper.py, live only under use_one_step_policy.
+  #     The FQL distillation Q-term follows the advantage-site formula; FQL
+  #     BoN sums the heads BEFORE the member reduction, so it scores
+  #     min_m(sum_task Q_s) + safety_coeff * min_k max_{m : Q_km <= 0} Q_km
+  #     (against min_m(sum_task Q_s + safety_coeff * sum_k Q_k) under
+  #     simple_summation) and draws its member pair per candidate cell.
+  #     NOTE: safe_qipm_hjb.yaml inherits this key and its agent IGNORES it —
+  #     HJB heads are signed margins that go positive by design, so the
+  #     "Q <= 0 is the only valid estimate" premise does not hold there. Its
+  #     create() still rejects use_one_step_policy, which is what keeps the
+  #     fql_helper branch dead for it too.
+  #     See docs/changes/2026-08-13-safety-aggregation-strategy/ and
+  #     docs/changes/2026-08-14-fql-minmax-aggregation/.
+  no_of_safety_subtasks: 1
+  safety_coeff: 1.0
+  safety_aggregation_strategy: simple_summation  # "simple_summation" | "min_max" | "learned_lambda" (enum asserted in create())
+  # --- learned_lambda arm (2026-09-05) ---------------------------------------
+  # Replaces the fixed scalar safety_coeff with a learned, non-negative
+  # (no_of_subtasks x no_of_safety_subtasks) matrix of Lagrange multipliers,
+  # and removes the safety-head aggregation entirely:
+  #     Q_total = sum_i w_i(s) Q^task_i  +  sum_k lambda_k(s) Q^safety_k
+  #     lambda(s) = Lambda^T phi(s),  phi(s) = w(s)/sum(w(s)),
+  #     Lambda    = softplus(Theta) clipped at lambda_max
+  # Rows index task subgoals, columns index safety constraints, so the price of
+  # each constraint depends on which task phase the policy is in. Lambda is
+  # trained by projected dual ascent on the CMDP Lagrangian, not tuned.
+  # Ignored unless safety_aggregation_strategy == 'learned_lambda'.
+  lambda_lr: 1e-4              # flat, no schedule, no weight decay. Strictly
+                               # below actor_lr=3e-4: the dual must be the slow
+                               # timescale or it chases the critic's noise.
+                               # 0 freezes Lambda at lambda_init -- the
+                               # baseline-equivalence test.
+  lambda_init: null            # null -> safety_coeff, which makes step 0 of
+                               # this arm EXACTLY the safety_agg='sum' arm.
+  lambda_max: 1.0              # Runaway-dual guard; clips the OUTPUT, so the
+                               # gradient stops there (logged as
+                               # lambda/frac_at_max -- saturation is reported,
+                               # never hidden). Set from the measured Q scales,
+                               # not by taste: the task term is a gated sum of
+                               # up to no_of_subtasks heads each capped at
+                               # V_subgoal=15, so |Q_task| reaches ~60; the
+                               # safety heads on toolhang run to about -16 per
+                               # constraint, so at lambda_max=1.0 the safety
+                               # term reaches ~4*16 = 64. Comparable ranges =
+                               # a real trade-off. A cap of 10 would let the
+                               # safety term reach ~640 and simply delete the
+                               # task objective.
+  lambda_warmup_steps: 40000   # matches start_training in the launchers: hold
+                               # the dual until the safety critics carry signal.
+  # WHICH DISTRIBUTION THE BUDGET LIVES ON -- read this before setting either key.
+  # The dual constrains Q^safety as `_dual_signal` measures it: over REPLAY-BUFFER
+  # states, at the actor's CANDIDATE actions (group_num_samples draws from the
+  # target policy). That is NOT the realized violation rate of the greedy policy
+  # in fresh eval episodes -- it is systematically more pessimistic, because the
+  # replay buffer carries the early unsafe policy's states and the candidate
+  # actions are exploratory. On toolhang the gap is an order of magnitude:
+  # measured 2026-09-06 on the fixed-lambda baseline, per-constraint Q^safety
+  # averaged [-5.59, -18.40, -2.73, -8.56] while env/episode_unsafe_rate_* implied
+  # [0.00, -0.80, 0.00, 0.00].
+  #
+  # Calibrating a budget from env rates therefore sets an UNSATISFIABLE
+  # constraint, and the dual ramps to lambda_max and stays there. That is what
+  # happened to the first learned_lambda fleet (10327119-21, 2026-09-05):
+  # frac_at_max reached 0.75 and the arm degenerated into a fixed lambda=1.0.
+  #
+  # So: prefer the explicit `safety_budget` below, in Q units, read off the
+  # baseline's online_agent/critic/q_subtask_<S_task+k>_mean. `safety_budget_rate`
+  # is kept for the case where the cost critic is well calibrated against the env
+  # rate -- verify that before using it.
+  safety_budget_rate: 0.02     # rho, the allowed per-step unsafe rate.
+                               # d_k = rho * H / (1 - safety_discount^H)
+                               # (H=4, gamma=0.99 -> d = 101.5*rho).
+                               # Scalar = one rate for every constraint, or a
+                               # LIST in safety_constraint_names order (see
+                               # main.py:343) for per-constraint budgets. The
+                               # toolhang launcher passes a list calibrated
+                               # against the sum baseline; this scalar default
+                               # only applies if nothing overrides it.
+  safety_budget: null          # explicit per-head list of d_k in Q UNITS, in
+                               # safety_constraint_names order. The preferred
+                               # key (see the note above); overrides
+                               # safety_budget_rate. Must be > 0:
+                               # d_k = 0 is unsatisfiable at the TD fixed point
+                               # (Q_k <= 0) and ramps the dual without bound.
+  # ---------------------------------------------------------------------------
+  # How the K safety heads' Q-values fuse into one scalar before scaling by
+  # safety_coeff (see _aggregate_safety_heads in ogpo/agents/safe_qipm.py):
+  #   "sum"  — plain sum_safety Q_k (legacy default). A head that mispredicts
+  #            a positive Q can silently cancel another head's real cost.
+  #   "relu" — sum_safety ReLU(-Q_k), negated: each head's contribution is
+  #            clamped to a non-negative cost, so it can never offset another
+  #            head's genuine violation signal.
+  #   "biased_relu" — sum_safety ReLU(-Q_k - margin), negated, with
+  #            margin = mean(Q_k) over all heads, computed fresh each call
+  #            (first-pass: no filtering by unsafe_count or sign). Widens the
+  #            zeroed-out band from Q_k >= 0 to Q_k >= -margin, forgiving
+  #            small negative predictions as noise while still fully zeroing
+  #            mispredicted-positive heads exactly as "relu" does.
+  #   "min_relu"/"max_relu" — reduce the K heads to a SINGLE Q, then one
+  #            biased negative ReLU: min(0, z + margin).
+  #              min_relu: z = min_k Q_k (worst constraint; fires if ANY head
+  #                        is past the margin).
+  #              max_relu: z = max over the heads with Q_k <= 0, falling back
+  #                        to min over the positives when every head has
+  #                        mispredicted (fires only if ALL heads are past the
+  #                        margin). The fallback matters: q_subtask_*_max has
+  #                        been logged at +141, and a plain max would let one
+  #                        such head zero the whole safety term.
+  #            Magnitude does not scale with K, so safety_coeff transfers
+  #            across head counts, and the term is EXACTLY 0 when z >= -margin.
+  safety_agg: sum
+  # --- margin for min_relu/max_relu only (ignored by sum/relu/biased_relu) ---
+  # How the dead-zone width is estimated each critic batch:
+  #   "directional_quantile" — the (1 - safety_margin_quantile)
+  #            quantile of z, taken ONLY over transitions that are not
+  #            deteriorating, i.e. z(s',a') >= z(s,a). Both z and z(s',a') are
+  #            free: next_q is already computed for the TD target. Selecting
+  #            the reference population by the per-transition change is what
+  #            makes this directional ("am I moving into worse safety along
+  #            this trajectory"); using a quantile rather than a mean is what
+  #            stops ~half the batch firing by construction.
+  #   "batch_mean" — margin = -mean(z) over the whole batch. Simpler, but the
+  #            reference is a uniform replay batch, so it measures "worse than
+  #            average" rather than "getting worse", and pins the activation
+  #            rate near 0.5 regardless of how safe the policy actually is.
+  #   "none" (default) — pin margin at 0, giving plain -ReLU(-z). Ablation of
+  #            selection-alone vs selection-plus-margin.
+  safety_margin_mode: none
+  safety_margin_quantile: 0.9    # fraction of the reference population zeroed
+  safety_margin_tau: 0.005       # EMA rate; effective window ~2/tau batches
+  safety_margin_min_count: 32   # min reference transitions to trust a batch;
+                                # below this the previous margin is held
+  safety_margin_cap: 5.0         # upper clip, so an unsafe policy cannot widen
+                                 # its own dead-zone until safety switches off
+  safety_discount: 0.99  # discount for the safety cost backup (task heads use discount/subtask_discounts)
+  # Source of the safety cost columns:
+  #   "single" — one column from info['unsafe_step'] (the aggregate unsafe bit);
+  #              requires no_of_safety_subtasks == 1.
+  #   "multi"  — K columns from info['safety_violations'], the per-constraint 0/1
+  #              decomposition; no_of_safety_subtasks must equal the number of
+  #              constraints the controller publishes (asserted at env setup).
+  # See configs/algos/safe_qipm_multihead.yaml for the multi-head setup.
+  safety_head_mode: single
+
+  # Critic-side joint proprio (default ON for the family): widen the low_dim
+  # obs with robot0_joint_pos + robot0_joint_vel so the safety critics see
+  # q/q̇ — the joint_limits/velocity/collision signals are functions of them
+  # and the eef-centric keys contain no velocities at all. true preserves the
+  # family's 67-dim contract and every existing run. Set false for the
+  # heads-without-proprio ablation (safety from state+action-chunk only);
+  # opt-out runs checkpoint under a separate *_noproprio key so 53- and
+  # 67-dim state can never cross-load at the same seed+env. Inherited by
+  # safe_qipm_hjb.yaml and safe_qipm_multihead.yaml — declare it only here.
+  critic_joint_proprio: true
+
+  # Separate safety critic (2026-09-24): task heads on obs[:53], safety heads
+  # on their own network over robot state (obs 0:9 + 53:67) and the chunk,
+  # so a critic pretrained by scripts/safety_pretrain/pretrain_safety_value.py
+  # restores into it (--checkpoint.restore_safety_critic_path). Needs
+  # critic_joint_proprio: true and actor_obs_dim: 53.
+  composite_safety_critic: false
+  # What the separate safety network reads: 'robot' (obs 0:9 + 53:67) or
+  # 'full' (all 67 dims, objects included). Must match the pretrained critic's
+  # obs_set (saved in its checkpoint meta).
+  safety_critic_obs_set: robot
+
+  # Actor's view of the observation: leading actor_obs_dim dims (null = full).
+  # With critic_joint_proprio on, the CRITICS consume the widened obs, but the
+  # offline demos' joint dims are recorded under the original OSC controller
+  # while eval runs under mink — OOD for the actor, which degrades during BC
+  # if it conditions on them (2026-07-27 v2 post-mortem). Toolhang launcher
+  # sets 53 (eef+gripper+object); with the opt-out that equals the full width
+  # and the slice is a value-identity.
+  actor_obs_dim: null
+
+  # Scalar-critic ablation — unsupported in safe_qipm v1 (asserted off in create())
+  scalar_goal_conditioned_critic: false
+  scalar_critic_goal_embed_dim: 32
+
+  # Done predictor network
+  done_hidden_dims: [256, 256, 256]
+  done_layer_norm: true
+  done_lr: 3e-4
+  done_weight_decay: 1e-5
+
+  # Target network EMA (same as OGPO)
+  tau: 0.05
+  actor_tau: 0.05
+
+  # PPO parameters
+  ppo_batch_size: 256
+  clip_epsilon: 0.01
+  entropy_coeff: 0.0
+  use_constant_scheduler_for_bc: true
+
+  # GRPO parameters
+  group_num_samples: 32
+
+  # BC regularization
+  use_bc_regularization: true
+  bc_coeff: 0.1
+
+  # Noise network
+  use_constant_noise: true
+  constant_noise_std: 0.005
+  min_noise_std: 0.005
+  max_noise_std: 0.005
+
+  # Policy settings
+  flow_steps: 10
+  best_of_n: 8
+  clip_min_epsilon_multiplier: 1.0
+  clip_max_epsilon_multiplier: 1.0
+  adv_clip_min: null
+  adv_strategy: vanilla  # v1: only "vanilla" is supported (asserted in create())
+
+  # Logprob normalization
+  normalize_denoising_horizon: true
+  normalize_act_space_dimension: true
+
+  # SDE-ODE correction
+  error_correct_sde_to_ode: true
+  use_denoiser: false

@@ -1,0 +1,86 @@
+_base_: common.yaml
+
+experiment:
+  project: QIPM
+
+agent:
+  agent_name: qipm
+
+  # Critic-side joint proprio, opt-in (2026-08-07, the "base + proprio
+  # critics" ablation control). true = widen the robomimic low_dim obs with
+  # robot0_joint_pos/vel so the CRITICS see q/q̇ (velocity and arm
+  # configuration that the eef-centric keys lack), exactly as the safe_qipm
+  # family always does. Robomimic single-robot low_dim only; requires
+  # actor_obs_dim (asserted in ogpo/main.py). Checkpoints go under the
+  # separate rolling-checkpoint key "qipm_proprio" so 53- and 67-dim runs
+  # never cross-load.
+  critic_joint_proprio: false
+  # Actor's view of the observation: leading actor_obs_dim dims (null = full).
+  # The joint-proprio widening is for the critics; the offline demos' joint
+  # dims are recorded under the original OSC controller while eval runs under
+  # mink — OOD for the actor, which degrades during BC if it conditions on
+  # them (2026-07-27 safe_qipm post-mortem). Toolhang launcher sets 53
+  # (eef+gripper+object). Critics always see full width.
+  actor_obs_dim: null
+
+  # Q-IPM specific
+  no_of_subtasks: 3
+  use_dense_rewards: false
+  normalize_rewards: false
+  subtask_based_discount: false
+  subtask_discounts: null  # per-subtask discount factors, e.g. [0.9, 0.99, 0.995, 0.999]
+  td_loss_mode: gated  # "gated" (per-subtask done gating) or "simple" (standard TD backup)
+  advantage_gating_mode: grandparent_future  # "goal_myopic", "goal_future", "grandparent_myopic", or "grandparent_future"
+  subtask_dag: null  # Dict[int, List[int]] for DAG prerequisites. null = sequential gating.
+  use_subtask_dag: true  # Auto-set DAG for tasks with known DAG structure (e.g., transport). Set false to force sequential.
+
+  # Scalar-critic ablation: replace S architectural Q-heads with one shared scalar Q-fn,
+  # queried at S one-hot subtask goals (mapped through a Dense+gelu projection) and stacked
+  # to (S, M, B). Output shape unchanged → all gating/aggregation in actor stays identical.
+  scalar_goal_conditioned_critic: false
+  scalar_critic_goal_embed_dim: 32
+
+  # Done predictor network
+  done_hidden_dims: [256, 256, 256]
+  done_layer_norm: true
+  done_lr: 3e-4
+  done_weight_decay: 1e-5
+
+  # Target network EMA (same as OGPO)
+  tau: 0.05
+  actor_tau: 0.05
+
+  # PPO parameters
+  ppo_batch_size: 256
+  clip_epsilon: 0.01
+  entropy_coeff: 0.0
+  use_constant_scheduler_for_bc: true
+
+  # GRPO parameters
+  group_num_samples: 32
+
+  # BC regularization
+  use_bc_regularization: true
+  bc_coeff: 0.1
+
+  # Noise network
+  use_constant_noise: true
+  constant_noise_std: 0.005
+  min_noise_std: 0.005
+  max_noise_std: 0.005
+
+  # Policy settings
+  flow_steps: 10
+  best_of_n: 8
+  clip_min_epsilon_multiplier: 1.0
+  clip_max_epsilon_multiplier: 1.0
+  adv_clip_min: null
+  adv_strategy: vanilla  # vanilla | conservative | penultimate
+
+  # Logprob normalization
+  normalize_denoising_horizon: true
+  normalize_act_space_dimension: true
+
+  # SDE-ODE correction
+  error_correct_sde_to_ode: true
+  use_denoiser: false

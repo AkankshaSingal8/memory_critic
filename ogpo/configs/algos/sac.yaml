@@ -1,0 +1,28 @@
+_base_: common.yaml
+
+experiment:
+  project: SAC
+
+training:
+  offline_steps: 500000
+  calql_steps: 0
+  q_warmup_steps: 50000
+  bc_refine_steps: 0
+  online_steps: 1000000
+
+bc:
+  clip_bc: false
+
+success_buffer:
+  use_success_buffer: false
+
+agent:
+  agent_name: sac
+  best_of_n: 1
+  critic_loss_type: mse
+  # MIP-Q (off by default; opt-in via slurm flag)
+  use_mip_q: false
+  mip_q_ensemble: true
+  mip_q_noise_scale: 1.0
+  mip_q_t_star: 0.9
+  num_ensemble_members: 10

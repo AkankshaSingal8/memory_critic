@@ -1,0 +1,60 @@
+_base_: common.yaml
+
+experiment:
+  project: SAC_QIPM_AVOID_OBSTACLE
+
+env:
+  name: pusht-keypoints-v0
+  rew_fn: sparse
+  sparse: false
+  obstacle:
+    enabled: true
+    # Vertical bar to the right of the goal at (256, 256, pi/4).
+    # Spans x=[340, 400], y=[180, 360] -- safely off the goal but in the
+    # right-flank approach so the agent must learn to go around it.
+    x: 340            # pixel coords; PushT world is [0, 512]^2
+    y: 180
+    w: 60
+    h: 180
+    collide_with_pusher: true
+    collide_with_block: true
+    terminate_on_collision: false
+    coverage_threshold: 0.95
+    safe_margin: 40
+    render_size: 384  # bumped from default 96 so saved gifs are inspectable
+    viz_seed: 12345
+
+training:
+  offline_steps: 0
+  calql_steps: 0
+  q_warmup_steps: 0
+  bc_refine_steps: 0
+  online_steps: 2000000
+
+buffer:
+  start_training: 10000
+  offline_ratio: 0.0
+  warmup_offline_ratio: 0.0
+
+bc:
+  clip_bc: false
+
+success_buffer:
+  use_success_buffer: false
+
+intervals:
+  log_interval: 5000
+  eval_interval: 20000
+  eval_interval_bc: 10000
+  save_interval: 500000
+
+agent:
+  agent_name: sac_qipm_avoid_obstacle
+  best_of_n: 1
+  critic_loss_type: mse
+  no_of_subtasks: 2
+  safety_coeff: 1.0
+  use_dense_rewards: false
+  init_temperature: 1.0
+  entropy_backup: false
+  goal_conditioning_mode: null

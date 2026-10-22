@@ -1,0 +1,136 @@
+# =============================================================================
+# OGPO Configuration
+# =============================================================================
+# Matches scripts/ogpo/ogpo_square.sh from old sbp_spl codebase exactly.
+
+_base_: common.yaml
+
+experiment:
+  project: OGPO_square_ablations
+  run_group: square
+  run_name: square_flow
+  wandb_name: square_flow
+  seed: 82723
+  log: true
+  save_dir: /data/user_data/$USER/ogpo
+
+env:
+  name: square-mh-low_dim
+  rew_fn: sparse
+  sparse: false
+
+training:
+  offline_steps: 500000
+  calql_steps: 0
+  q_warmup_steps: 0
+  bc_refine_steps: 0
+  online_steps: 2000000
+  bc_only: false
+
+buffer:
+  size: 2000000
+  start_training: 10000
+  utd_warmup: 1
+  utd_online: 1
+  offline_ratio: 0.0
+
+eval:
+  n_eval_envs: 32
+  eval_episodes: 2
+  plot_q_vs_mc: false
+
+intervals:
+  log_interval: 5000
+  eval_interval_bc: 5000
+  eval_interval: 20000
+  save_interval_bc: -1
+  save_interval: 500000
+  preemption_backup_interval: 100000  # see common.yaml for the I/O cost note
+  step_data_log_interval: -1
+
+bc:
+  clip_bc: true
+  clip_bc_threshold: 0.45
+
+success_buffer:
+  use_success_buffer: true
+  batch_size: 256
+
+dataset:
+  proportion: 1.0
+
+checkpoint:
+  restore_actor_path: null
+  restore_critic_path: null
+  ep_resume: 0
+
+agent:
+  agent_name: ogpo
+
+  # Target network EMA
+  tau: 0.05
+  actor_tau: 0.05
+
+  # PPO parameters
+  ppo_batch_size: 256
+  clip_epsilon: 0.01
+  entropy_coeff: 0.0
+  use_constant_scheduler_for_bc: true
+
+  # GRPO parameters
+  group_num_samples: 32
+
+  # BC regularization
+  use_bc_regularization: true
+  bc_coeff: 0.1
+
+  # Noise network (constant noise for SDE sampling)
+  use_constant_noise: true
+  constant_noise_std: 0.005
+  min_noise_std: 0.005
+  max_noise_std: 0.005
+
+  # Policy settings
+  flow_steps: 10
+  best_of_n: 8
+  normalize_group: false
+  clip_min_epsilon_multiplier: 1.0
+  clip_max_epsilon_multiplier: 1.0
+  adv_clip_min: null
+  adv_strategy: vanilla  # vanilla | conservative | awr
+  awr_beta: 0.05
+
+  # Logprob normalization (matches old code defaults)
+  normalize_denoising_horizon: true
+  normalize_act_space_dimension: true
+
+  # SDE-ODE correction
+  error_correct_sde_to_ode: true
+  use_denoiser: true
+
+  # FPO (Flow Policy Optimization) settings
+  use_fpo: false              # Toggle FPO ratio vs OGPO log-prob ratio
+  fpo_n_mc: 16                # Number of (tau, eps) MC samples for CFM loss
+  fpo_per_sample: true        # FPO++ per-sample ratio clipping
+  fpo_use_aspo: false         # FPO++ ASPO trust region (SPO for negative adv)
+  fpo_zero_sampling: false    # FPO++ zero-sampling at eval (ODE from 0)
+  fpo_cfm_loss_clamp: 100.0   # Clamp individual CFM losses
+  fpo_cfm_diff_clamp: 5.0     # Clamp CFM loss difference before exp
+
+  # Architecture backbone (independent for actor/critic)
+  actor_backbone: mlp       # mlp | tf
+  critic_backbone: mlp      # mlp | tf
+  actor_hidden_dims: [512, 512, 512, 512]
+  value_hidden_dims: [512, 512, 512, 512]
+
+  # Goal conditioning (wraps actor/critic with GoalConditionedNetwork)
+  goal_conditioning_mode: null   # set to a mode string to enable
+  no_of_subtasks: null           # set when goal_conditioning_mode is enabled
+  goal_embed_dim: 32
+  goal_conditioned_actor: true
+  goal_conditioned_critic: true
+
+  # Vision configuration (active when env has image observations)
+  actor_obs: state           # state | image
+  critic_obs: state          # state | image
+  vit_encoder: minvit        # minvit | minvit_small | minvit_large

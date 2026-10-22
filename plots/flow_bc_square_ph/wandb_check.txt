@@ -1,0 +1,80 @@
+== square_ph_flow_bc_10demos: 3 W&B run(s)
+   seed 0: run 4xnvkqfw 'flow_bc_square_ph_10demos_h8_20261019_qipmseed0_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/4xnvkqfw
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 220000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 7: run q26796x7 'flow_bc_square_ph_10demos_h8_20261019_qipmseed7_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/q26796x7
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 97  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 290000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 42: run 9zn1zysu 'flow_bc_square_ph_10demos_h8_20261019_qipmseed42_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/9zn1zysu
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 99  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 250000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+== square_ph_flow_bc_20demos: 3 W&B run(s)
+   seed 0: run ec3ul6r4 'flow_bc_square_ph_20demos_h8_20261019_qipmseed0_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/ec3ul6r4
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 130000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 7: run 1v7oli9e 'flow_bc_square_ph_20demos_h8_20261019_qipmseed7_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/1v7oli9e
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 98  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 90000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 42: run z6os3suj 'flow_bc_square_ph_20demos_h8_20261019_qipmseed42_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/z6os3suj
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 90000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+== square_ph_flow_bc_50demos: 3 W&B run(s)
+   seed 0: run rxwvpthd 'flow_bc_square_ph_50demos_h8_20261019_qipmseed0_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/rxwvpthd
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 210000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 7: run gj4agxex 'flow_bc_square_ph_50demos_h8_20261019_qipmseed7_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/gj4agxex
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 210000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 42: run lms9o5ft 'flow_bc_square_ph_50demos_h8_20261019_qipmseed42_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/lms9o5ft
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 190000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+== square_ph_flow_bc_100demos: 3 W&B run(s)
+   seed 0: run 1edf5y4z 'flow_bc_square_ph_100demos_h8_20261019_qipmseed0_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/1edf5y4z
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 370000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 7: run 4u93ixt3 'flow_bc_square_ph_100demos_h8_20261019_qipmseed7_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/4u93ixt3
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 340000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 42: run stzsy6w2 'flow_bc_square_ph_100demos_h8_20261019_qipmseed42_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/stzsy6w2
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 280000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+== square_ph_flow_bc_200demos: 3 W&B run(s)
+   seed 0: run 8929ui96 'flow_bc_square_ph_200demos_h8_20261019_qipmseed0_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/8929ui96
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 440000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 7: run f2vlbpec 'flow_bc_square_ph_200demos_h8_20261019_qipmseed7_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/f2vlbpec
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 100  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 440000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B
+   seed 42: run auirn4cc 'flow_bc_square_ph_200demos_h8_20261019_qipmseed42_rmemcritic_20261019' state=finished url=https://wandb.ai/akankshasingal08/memory-critic/runs/auirn4cc
+     summary key prefixes: ['eval', 'eval_sde', 'levels', 'memory', 'offline_agent']
+     offline_agent/bc_loss rows: 99  eval rows: 50 (bc_step 10000..500000)
+     levels/target_100/step (best checkpoint): 400000
+     cpu_eval cross-check: 50 files, 50 W&B points, 0 mismatches, 0 steps missing from W&B

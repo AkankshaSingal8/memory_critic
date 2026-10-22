@@ -1,0 +1,25 @@
+# =============================================================================
+# QC (ACFQL) Configuration
+# =============================================================================
+# Flow Q-learning with action chunking
+
+_base_: common.yaml
+
+agent:
+  # Identification
+  agent_name: acfql
+
+  # QC-specific parameters
+  actor_type: best-of-n  # 'best-of-n' or 'distill-ddpg'
+  actor_num_samples: 8     # for best-of-n sampling
+  alpha: 100.0              # BC coefficient for distillation (needs tuning per env)
+  normalize_q_loss: false
+
+  # QC uses smaller critic ensemble
+  num_qs: 2
+
+  # QC uses no BON subsampling (matches old ACFQL default)
+  subsample_bon: false
+
+  # Flow steps
+  flow_steps: 10

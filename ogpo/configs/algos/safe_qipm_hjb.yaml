@@ -1,0 +1,58 @@
+_base_: safe_qipm.yaml
+
+# HJB (reachability) variant of safe_qipm: the always-active safety heads are
+# trained with the discounted Hamilton-Jacobi-Bellman backup over signed
+# MARGINS instead of the CMDP cost-sum backup over 0/1 violation flags. Head
+# semantics flip — higher = safer — and the values are bounded by the observed
+# margin range: per-backup and unconditionally from ABOVE, and from below only
+# via the gamma^H contraction (see _compute_safety_hjb_target's docstring — at
+# safety_discount=0.999 with H=8 that pull-back is only ~0.8% per backup).
+# The critic layout and the scalarization are unchanged:
+#   Q_total = sum_task gate_s*Q_s + safety_coeff * sum_safety Q_hj_k
+#
+# Everything except the block below is inherited from safe_qipm.yaml, so the
+# arms stay identical by construction — do NOT copy other keys down here.
+# See docs/changes/2026-07-26-hjb-safety-heads/.
+
+agent:
+  # Registry key AND rolling-checkpoint identity: distinct from safe_qipm so
+  # the HJB runs get a fresh checkpoint key (a CMDP critic restores cleanly
+  # into an HJB agent — same shapes, inverted head semantics — and only the
+  # distinct name keeps that from happening silently on resume).
+  agent_name: safe_qipm_hjb
+
+  # v1 is multi-only (asserted in create() and in the env wrapper): the
+  # single-mode aggregate unsafe bit has no margin analogue.
+  safety_head_mode: multi
+
+  # Declared true here (safe_qipm.yaml defaults it false) because create()
+  # ASSERTS it: the safety columns ride the same wrapper path dense rewards
+  # enable, so with it off subtask_status stays all-zero — which under margin
+  # semantics reads as "permanently on the envelope boundary". Without this
+  # line `--algo=safe_qipm_hjb` with no overrides could not build an agent.
+  use_dense_rewards: true
+
+  # Must equal the number of constraint families the composite controller
+  # publishes in info['safety_constraints'] — asserted at env setup, before the
+  # buffer and critic are sized. 4 for the toolhang safe controller configs:
+  #   ['joint_limits', 'velocity', 'collision', 'workspace']
+  # (keepout is absent because keepout_boxes is null there).
+  no_of_safety_subtasks: 4
+
+  # Per-head margin divisors, in THE SAME ROSTER ORDER as above. Applied inside
+  # the HJB backup only (ogpo/agents/safe_qipm_hjb._compute_safety_hjb_target),
+  # so the replay buffer and every logged metric stay in raw physical units and
+  # these can be re-tuned without invalidating a rolling checkpoint.
+  #
+  # Upstream margins are heterogeneous (rad / rad/s / m / m) and O(0.02-2),
+  # against task heads spanning +10..-100 — at safety_coeff=1.0 raw margins
+  # would make the safety term ~100x weaker than the task term, the mirror
+  # image of the 2026-07-26 CMDP dominance failure. Each divisor is the
+  # toolhang envelope's own scale for that family, so normalized margins are
+  # O(1) and sum_safety Q_hj lands in roughly [-2, +4]:
+  #   0.5  joint_limits — rad, the buffered band half-width
+  #   2.62 velocity     — rad/s, the tightest configured v_max
+  #   0.05 collision    — m, the pair-margin scale (hull -0.02..+0.18)
+  #   0.3  workspace    — m, the box half-extent scale
+  # null = raw margins (no normalization).
+  safety_margin_scales: [0.5, 0.905, 0.05, 0.3]

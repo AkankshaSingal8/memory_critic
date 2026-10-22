@@ -1,0 +1,60 @@
+_base_: common.yaml
+
+experiment:
+  project: SAC_QIPM_FLOQ
+
+training:
+  offline_steps: 200000
+  calql_steps: 0
+  q_warmup_steps: 10000
+  bc_refine_steps: 0
+  online_steps: 5000000
+
+bc:
+  clip_bc: false
+
+success_buffer:
+  use_success_buffer: false
+
+agent:
+  agent_name: sac_qipm_floq
+  best_of_n: 1
+  critic_loss_type: mse           # the distilled head uses MSE; FloQ training is separate
+  no_of_subtasks: 4               # OGBench scene-play-singletask-task4 default
+  use_dense_rewards: true
+  normalize_rewards: false
+  goal_conditioning_mode: null
+  goal_conditioned_actor: true
+  goal_conditioned_critic: true
+  goal_embed_dim: 32
+  advantage_gating_mode: grandparent_future
+  init_temperature: 1.0
+  entropy_backup: false
+  # discount inherited from common.yaml = 0.99 (OGBench standard)
+
+  floq:
+    enabled: true
+    # Velocity field
+    hidden_dims: [512, 512, 512, 512]
+    flow_num_ensembles: 2
+    layer_norm: true
+    use_prob_embed: true            # HL-Gauss for the z_t input embedding
+    return_embed_bins: 51
+    sigma: 16.0
+    embed_time: true
+    time_embed_dim: 64
+    # Distilled critic (matches num_qs=10 convention from existing sac_qipm)
+    distill_hidden_dims: [512, 512, 512, 512]
+    distill_num_ensembles: 10
+    # Flow integration (aggressive for compute reasons; bump up if accuracy is poor)
+    critic_flow_steps: 4
+    noise_samples: 1
+    noise_coverage: 0.2             # noise span = noise_coverage * [q_min, q_max]
+    # QIPM-aware Q-range derivation. The plain SAC formula `r/(1-γ)` is wrong
+    # here because QIPM caps each per-subtask TD target at V_subgoal=15 from
+    # above (qipm_helper.py:69). Real range is roughly [-100, +15] not [-100, +500].
+    r_min: -1.0
+    v_subgoal: 15.0                 # MUST match V_subgoal in qipm_helper.py:69
+    q_offset: 5.0                   # Q-unit safety margin on both ends of the bin support
+    distill_weight: 1.0
+    q_agg: mean

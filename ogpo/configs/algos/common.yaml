@@ -1,0 +1,358 @@
+# All algorithms should inherit from this base config.
+# Algorithm-specific yaml files can override any value.
+
+experiment:
+  project: test
+  run_group: Debug
+  run_name: Debug
+  wandb_name: test
+  seed: 0
+  log: true
+  save_dir: exp/
+  # Master Tier A reproducibility switch (2026-08-24). true ADDITIONALLY requires
+  # the launcher to have exported XLA_FLAGS="... --xla_gpu_deterministic_ops=true
+  # --xla_gpu_autotune_level=0" (both; autotune added 2026-08-25 after the round-1
+  # acceptance failure — XLA reads these at backend init, before main() runs) and
+  # raises with the
+  # exact export line if it did not. WARNING: this changes the numerics — a
+  # deterministic run is NOT comparable to an unflagged one, so a fleet must be
+  # entirely on one side of the switch.
+  deterministic: false
+  # jax_default_matmul_precision. null = platform default (TF32 tensor cores on
+  # Ampere/Ada, ~10-bit mantissa inputs). 'highest' = F32_F32_F32, the bit-exact
+  # path deterministic: true implies. Applied on its own when set with
+  # deterministic: false — pinning precision alone is a weaker, legal request.
+  matmul_precision: null
+  # Opt-in disambiguator for a DELIBERATE same-config repeat; null = off. When
+  # set it is appended to exp_name (`_r<id>`) AND to the rolling-checkpoint
+  # scratch dir (`<seed>_<env>_r<id>`), so the repeat neither overwrites the
+  # original's artifacts nor resumes its checkpoint. Without it a repeat is
+  # indistinguishable from a resume. Enters the resume guard's config digest.
+  repeat_id: null
+
+env:
+  name: square-mh-low_dim
+  rew_fn: sparse
+  sparse: false
+  anchor_demo: null  # For RoboCasa: lock resets to a demo's layout/style (e.g. "demo_0")
+  obstacle: null     # For PushT: optional dict {enabled, x, y, w, h, ...} for the obstacle wrapper
+  live_render_images: false  # LIBERO only: enable offscreen renderer and return dict obs {state, image} so robometer can score rollout frames
+  max_episode_steps: null  # OGBench only: override the registered TimeLimit (e.g. 400). Patches gymnasium.envs.registry at startup.
+
+training:
+  offline_steps: 500000
+  calql_steps: 0
+  q_warmup_steps: 0
+  bc_refine_steps: 0
+  online_steps: 1000000
+  bc_only: false
+
+buffer:
+  size: 2000000
+  start_training: 10000
+  utd_warmup: 1
+  utd_online: 1
+  utd_q: null    # Critic UTD (defaults to utd_online if null)
+  utd_pi: null   # Actor UTD (defaults to utd_online if null)
+  offline_ratio: 0.0
+  warmup_offline_ratio: 0.0
+
+eval:
+  n_eval_envs: 32
+  eval_episodes: 2
+  video_episodes: 0
+  video_frame_skip: 3
+  video_interval: 0        # 0 = disabled; >0 = log one success + one failure video at the first eval at/after each N global steps
+  # Episode attempts before giving up on finding both outcomes. A policy that
+  # rarely succeeds never finds one, so it runs ALL attempts: on tool_hang that is
+  # ~16s of sim per 1000-step episode, ~2min per capture at the default 8. Keep
+  # video_interval well above eval_interval unless you want to pay that per eval.
+  video_max_attempts: 8
+  plot_q_vs_mc: false
+  # BC phase only: run an SDE eval (agent.sample_actions, fixed PRNGKey(1)) right
+  # after every ODE eval and log it under eval_sde/ at the same step.
+  bc_sde_eval: false
+  # Named views over the safe-robosuite constraint roster for the safety/ eval
+  # keys (only emitted when the env info carries safety_violations). A JSON
+  # string or a mapping {view: [constraint, ...]}; null = one view "any" over all
+  # constraints. E.g. --eval.safety_views='{"floor080": ["joint_limits","velocity","collision","workspace"]}'
+  safety_views: null
+  # Path to a safe-robosuite composite controller JSON whose safety_config the
+  # OSC side-car monitor (envs/osc_safety_sidecar.py) evaluates once per policy
+  # step, publishing the same safety_* info keys the mink controller does. For
+  # controllers without their own safety info only (it refuses to run alongside
+  # ROBOSUITE_CONTROLLER_CONFIG). null = off.
+  osc_safety_monitor_config: null
+
+intervals:
+  log_interval: 5000
+  eval_interval_bc: 10000
+  eval_interval: 100000
+  save_interval_bc: -1
+  save_interval: -1
+  # Steps between rolling checkpoints (agent + the FULL replay buffer, so a
+  # multi-GB write at buffer.size: 2000000). -1 disables them, leaving a SIGTERM
+  # as the only trigger — which loses everything if the job dies any other way.
+  preemption_backup_interval: 100000
+  # Separate, much finer cadence for the BC phase. A BC checkpoint passes
+  # replay_buffer=None (bc_runner.py:165), so it writes the agent only, not GBs
+  # — it can afford to be frequent in a way the online one cannot. null falls
+  # back to preemption_backup_interval, preserving the pre-2026-09-05 behaviour.
+  bc_preemption_backup_interval: null
+  step_data_log_interval: -1
+
+bc:
+  clip_bc: false
+  clip_bc_threshold: 0.45
+  # intervals.save_interval_bc checkpoints hold only the actor network params
+  # (actor_<step>.pkl: online + EMA target actor/noise nets, no critic, no
+  # optimizer state). The final checkpoint stays a full params_<step>.pkl.
+  save_actor_only: false
+
+success_buffer:
+  use_success_buffer: false
+  batch_size: 256
+
+dataset:
+  proportion: 1.0
+  replace_interval: 1000
+  ogbench_dir: null
+  p_aug: null
+  bc_dataset_path: null  # Optional npz path; if set, replaces train_dataset for BC pretraining
+
+checkpoint:
+  restore_actor_path: null
+  restore_critic_path: null
+  # A scripts/safety_pretrain pretrained safety critic (safety_value.save_state
+  # pickle) for agent.composite_safety_critic; loads the safety subtree only.
+  restore_safety_critic_path: null
+  ep_resume: 0
+  # Rolling-checkpoint resume guard. 'strict' raises when the config digest
+  # beside the checkpoint is missing or differs from this run's (main.py's
+  # resume try/except turns that into a clean fresh start, so a retuned arm
+  # never silently inherits the previous arm's networks/optimizer/buffer at the
+  # same seed+env); 'off' skips the check. See compute_config_hash for what is
+  # hashed — eval/intervals/checkpoint and the experiment naming keys are not.
+  config_hash_mode: strict
+  # A checkpoint that exists but fails to load raises by default: the fresh
+  # start that used to follow deleted it on the first save and opened a second
+  # wandb run. true restores that fallback (debugging only).
+  fresh_on_load_error: false
+
+robometer:
+  progress_rewards: false   # When true, query robometer server per completed trajectory and overwrite per-step rewards with returned per-frame progress
+  server_url: null          # Explicit URL override (else read $ROBOMETER_SERVER_URL or url_file)
+  url_file: null            # Path to file containing server URL (default: ~/QIPM/.robometer_server/server.url)
+  wait_s: 1800.0            # Max seconds to wait for URL file + /health
+  max_frames: 64            # How many frames per query (subsampled at robometer.target_fps spacing). At 10 fps × 64 frames = 6.4s window per query. 64 × 196 visual tokens ≈ 12.5K tokens, attention ~10 GB — fits on 48 GB GPU with model weights (~22 GB peak).
+  use_pbrs: false           # Potential-based reward shaping (Ng et al. 1999). When true, per-step reward becomes γ·Φ(s_{t+1}) − Φ(s_t) where Φ = robometer progress, plus +50 sparse bonus on true success terminals (masks<0.5). Φ(s_0)=0. When false, falls back to "shift_to_[-1,0] + bonus" path.
+
+agent:
+  # Identification (set by algorithm-specific config)
+  agent_name: null
+
+  # Placeholders (set automatically at runtime)
+  ob_dims: null
+  action_dim: null
+  q_min: null
+  q_max: null
+  # Goal conditioning (disabled by default; set to "cumulative" or "singular" to enable)
+  goal_conditioning_mode: null
+  goal_conditioned_actor: true    # use_goals flag on actor's GoalConditionedNetwork wrapper
+  goal_conditioned_critic: true   # use_goals flag on critic's GoalConditionedNetwork wrapper
+  goal_embed_dim: 32              # output dim of the learned goal projection
+
+  # Action bounds (environment-specific, default to normalized [-1, 1])
+  act_min: -1.0
+  act_max: 1.0
+
+  # Learning rates
+  lr: 3e-4
+  actor_lr: 3e-4
+  critic_lr: 3e-4
+  ppo_lr: 4.5e-5
+  clip_grad_norm: 1000.0
+
+  # Scheduler settings
+  actor_scheduler: cosine
+  critic_scheduler: constant
+  use_constant_scheduler_for_bc: true
+
+  # Cosine scheduler parameters
+  actor_warmup_steps: 2000
+  actor_decay_steps: 50000
+  actor_end_value: 2e-5
+  critic_warmup_steps: 500
+  critic_decay_steps: 5000
+  critic_end_value: 0.0
+  actor_weight_decay: 0.0
+  critic_weight_decay: 1e-5
+
+  # Optimizer
+  use_muon: false
+  muon_beta: 0.95
+  muon_ns_steps: 5
+  muon_nesterov: true
+
+  # Batch sizes
+  batch_size: 256
+  ppo_batch_size: 256
+
+  # Architecture
+  actor_hidden_dims: [512, 512, 512, 512]
+  value_hidden_dims: [512, 512, 512, 512]
+  layer_norm: true
+  actor_layer_norm: false
+
+  # Target network
+  tau: 0.005
+  actor_tau: 0.005
+  policy_delay: 1            # actor updates every policy_delay critic updates (TD3-style)
+
+  # Critic ensemble
+  q_agg: mean
+  subsample_bon: true
+  num_qs: 10
+  calql_q_subsample: 2
+
+  # MIP-Q Configuration
+  use_mip_q: false                 # Enable MIP-Q critic (replaces ensemble-Q)
+  mip_q_ensemble: false            # true: explicit ensemble (multiple networks, single noise)
+                                   # false: implicit ensemble (single network, multiple noises)
+  mip_q_noise_scale: 1.0           # Scale for uniform noise: samples from [-u, u]
+  mip_q_t_star: 0.9                # Time step for second MIP refinement stage
+  num_ensemble_members: 10         # Number of ensemble members (networks if explicit, noises if implicit)
+
+  # Environment (set at runtime)
+  discount: 0.99
+  horizon_length: 4
+  action_chunking: true
+  encoder: null
+
+  # Vision configuration
+  actor_obs: state            # 'state' or 'image'
+  critic_obs: state           # 'state' or 'image'
+  vit_encoder: minvit         # minvit | minvit_small | minvit_large
+  vit_state_proj_dim: 0       # 0 = raw concat, >0 = Dense projection before concat
+  vit_img_proj_dim: 0         # 0 = raw flatten (15k+ dims!), >0 = Dense+LN projection
+  proprio_dim: null            # set at runtime from observation shape
+
+  # Architecture variants (Transformer, SimBa, FiLM)
+  useSimBa: false
+  useFiLM: false
+  useTF: false              # convenience: sets both backbones to tf
+  actor_backbone: mlp       # mlp or tf (independent of critic)
+  critic_backbone: mlp      # mlp or tf (independent of actor)
+  tf_pi_layers: 5
+  tf_pi_embed_dim: 128
+  tf_pi_heads: 8
+  tf_pi_dropout: 0.0
+  tf_q_layers: 5
+  tf_q_embed_dim: 128
+  tf_q_heads: 8
+  tf_q_dropout: 0.0
+  simba_actor_hidden_dims: [1024, 1024]
+  simba_critic_hidden_dims: [1024, 1024, 1024]
+
+  # Flow matching
+  flow_steps: 10
+  policy_type: flow
+  mip_t_star: 0.999
+
+  # Flow sampling options
+  clip_intermediate_actions: true
+  denoised_clip_value: 1.0
+  normalize_denoising_horizon: false
+  normalize_act_space_dimension: false
+  use_shortcut: false
+  shortcut_inference_steps: 4
+
+  # Denoiser / SDE options
+  use_denoiser: false
+  use_constant_noise: true
+  constant_noise_std: 0.01
+  min_noise_std: 0.01
+  max_noise_std: 0.01
+
+  # Advantage clipping (OGPO)
+  adv_clip_min: null
+  clip_min_epsilon_multiplier: 1.0
+  clip_min_epsilon_multiplier: 1.0
+
+  # HLGauss
+  critic_loss_type: mse
+  num_bins: 256
+  action_repeat: false
+
+  # Best-of-N
+  best_of_n: 8
+  # Who acts while i < q_warmup_end (data collection + critic-only warmup):
+  #   bon   - best-of-n ranked by the critic being trained (historical default)
+  #   actor - the frozen actor alone (sample_actions), so the untrained critic
+  #           cannot steer collection and the warmup evaluates exactly the
+  #           policy its TD targets bootstrap from. Best-of-n resumes after.
+  warmup_behavior_policy: bon
+
+  # FQL (Flow Q-Learning) - One-Step Policy
+  use_one_step_policy: false
+  train_one_step_in_offline: false
+  train_one_step_in_online: false
+  fql_distillation_coeff: 10.0
+  fql_train_main_policy: true
+  use_one_step_for_targets: false
+  use_one_step_for_rollouts: false
+  # One-step network/optimizer (nulls fall back to the actor_* values in
+  # fql_helper.create_one_step_network)
+  one_step_hidden_dims: [512, 512, 512, 512]
+  one_step_layer_norm: false
+  one_step_lr: null
+  one_step_scheduler: null
+  one_step_warmup_steps: null
+  one_step_decay_steps: null
+  one_step_end_value: null
+
+  # Sampling
+  randn_clip_value: 3.0
+
+  # DSRL/SAC specific
+  entropy_backup: false
+  init_temperature: 1.0
+  target_entropy: null
+  noise_dim: null
+  lr_actor: null
+  lr_critic: null
+  lr_actor_bc_flow: null
+  optimizer_actor: adam
+  optimizer_critic: adam
+  optimizer_actor_bc_flow: adam
+
+  # BPTT specific
+  bptt_num_samples: 4
+
+  # QC/ACFQL specific
+  alpha: 0.1
+  actor_type: distill-ddpg
+  actor_num_samples: 16
+
+  # EXPO specific
+  n_action_samples: 8
+  n_edit_samples: 8
+  edit_policy_bound: 0.1
+  edit_hidden_dims: [256, 256, 256]
+  edit_layer_norm: true
+  edit_lr: 3e-4
+  edit_weight_decay: 0.0
+
+  # DSRL+EXPO specific
+  use_edit_actor: false
+  edit_action_scale: 0.5
+  edit_start_step: 100000
+  action_num_qs: 10
+  lr_action_critic: null
+  lr_edit_actor: null
+  action_critic_hidden_dims: null
+  edit_actor_hidden_dims: null
+  edit_init_temperature: 1.0
+  edit_target_entropy: null
+  optimizer_action_critic: null
+  optimizer_edit_actor: null
