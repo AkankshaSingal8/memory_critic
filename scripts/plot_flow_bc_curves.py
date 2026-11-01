@@ -13,6 +13,8 @@ Every finished seed of a group is used: lines are the mean over seeds, bands the
   ode_success_vs_steps.png      the same for ODE
   success_per_dataset_size.png  one panel per dataset size: unsmoothed SDE and ODE per checkpoint;
                                 each seed's selected best step (selected/target_100.pkl) in the title
+  success_vs_dataset_size.png   SDE and ODE success vs dataset size, mean over seeds (dots = seeds),
+                                at each seed's selected best checkpoint and at the final checkpoint
   wandb_check.txt               what W&B holds per run, and the cpu_eval cross-check
   curves.json                   the plotted data
 
@@ -182,6 +184,48 @@ def plot_panels(plt, data, out):
     plt.close(fig)
 
 
+def at_step(d, mode, step):
+    """3-point smoothed success (%) of one seed at one eval step."""
+    return 100 * smooth(np.array(d[mode]))[d["step"].index(step)]
+
+
+def plot_scaling(plt, data, tag, out):
+    """Success vs dataset size, mean over seeds (dots = seeds): at each seed's selected best
+    checkpoint (levels/target_100) and at the final checkpoint."""
+    sizes = sorted(data, key=int)
+    xs = np.array([int(n) for n in sizes])
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.2), sharey=True, facecolor=SURFACE)
+    panels = (("selected best checkpoint", lambda d: d["best_step"]),
+              ("final checkpoint", lambda d: d["step"][-1]))
+    for ax, (name, pick) in zip(axes, panels):
+        for mode, colour, label, dx in (("sde", SDE_C, "SDE", 0.97), ("ode", ODE_C, "ODE", 1.03)):
+            ys = np.array([[at_step(d, mode, pick(d)) for d in data[n].values()] for n in sizes])
+            for x, row in zip(xs, ys):
+                ax.scatter(np.full(len(row), x * dx), row, s=14, color=colour, alpha=0.35, lw=0)
+            ax.plot(xs, ys.mean(1), color=colour, lw=2, marker="o", ms=7, label=label,
+                    markeredgecolor=SURFACE, markeredgewidth=2)
+        style(ax, ylabel=ax is axes[0])
+        ax.set_xscale("log")
+        ax.set_xlim(8, 320)
+        ax.set_xticks(xs, [str(x) for x in xs])
+        ax.minorticks_off()
+        ax.set_xlabel("demos (log scale)", color=INK2)
+        ax.set_title(name, color=INK, loc="left", fontsize=10)
+    axes[0].legend(frameon=False, loc="lower right", labelcolor=INK2)
+    fig.suptitle(f"Flow BC on {tag}: success vs dataset size\n{seeds_label(data).split(';')[0]} "
+                 "(dots = individual seeds; 3-point smoothed)", x=0.01, ha="left", color=INK, fontsize=11)
+    fig.tight_layout(rect=(0, 0, 1, 0.97))
+    fig.savefig(out, dpi=200, facecolor=SURFACE)
+    plt.close(fig)
+    for name, pick in panels:
+        print(f"{name}:")
+        for n in sizes:
+            vals = {m: [at_step(d, m, pick(d)) for d in data[n].values()] for m in ("sde", "ode")}
+            print(f"  {n:>3} demos  SDE {np.mean(vals['sde']):5.1f}% ({np.min(vals['sde']):.0f}-"
+                  f"{np.max(vals['sde']):.0f})  ODE {np.mean(vals['ode']):5.1f}% "
+                  f"({np.min(vals['ode']):.0f}-{np.max(vals['ode']):.0f})")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", default="square")
@@ -218,6 +262,7 @@ def main():
     plot_sweep(plt, data, "ode", f"Flow BC on {tag}: ODE success vs BC steps (3-point smoothed)",
                os.path.join(out_dir, "ode_success_vs_steps.png"))
     plot_panels(plt, data, os.path.join(out_dir, "success_per_dataset_size.png"))
+    plot_scaling(plt, data, tag, os.path.join(out_dir, "success_vs_dataset_size.png"))
     print(f"wrote {out_dir}/")
 
 

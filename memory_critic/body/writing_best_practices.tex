@@ -1,0 +1,34 @@
+
+\subsection{Leaving Comments During Writing}
+\begin{itemize}
+    \item Please use \REF for a missing refernece to a section, and \CITE for a missing citation, and \TODO for a todo. Note the red collect and double $??$ enables easy search. 
+    \item To leave in-paper comments, we use the \texttt{color-edits.sty} package. This is already set up. All you have to do is go to \texttt{preamble \textbackslash comment\_macros.tex} and put in an \texttt{\textbackslash addauthor{[your initials]}{[your desired comment color]}}. For example, with my initials `ms', $\texttt{\textbackslash mscomment\{\
+    dots\}}$ produces comments designated by my initials and comments.
+\end{itemize}
+\subsection{ Labeling and References}
+\begin{itemize}
+    \item Label each section, theroem, algorithm, algorithm line with an appropriate \texttt{object\_type:object\_label}. Examples include \texttt{thm:my\_theorem}, \texttt{sec:this\_section\_thing}, \texttt{algorithm:some\_alg}, \texttt{line:some\_line}. Make use of references frequently. 
+    \item Use \texttt{\textbackslash Cref\{\dots\}} for refernences whenever possible, which also includes the reference type in the name. Some of these 
+\end{itemize}
+\subsection{How to write well}
+\begin{itemize}
+    \item Thou shalt not use run on sentences.
+    \begin{example} This is a run-on sentence
+    \begin{quote}
+                Moreover, by strategically weighting per-subgoal critic values in the aggregation step, the policy can balance current and future goal completion {\color{red} in contrast to the inherent myopia of standard goal conditioning. } 
+
+    \end{quote}
+        Proposed correction
+
+    \begin{quote}
+    Whereas hiearchical goal conditioning can be overly myopic, strategically weighting per-subgoal critic values in the aggregation step balances current and future goal completion. 
+    \end{quote}
+
+    \end{example}
+\end{itemize}
+
+\subsection{Spacing}
+\begin{itemize}
+    \item Many in-text macros do not space correctly. E.g. lets make a macro \texttt{\textbackslash newcommand\{bleh\}{bleh}}. Then if use write \texttt{\textbackslash bleh something}, it will read ``blehsomething.'' one way to fix this is to and a $\{\}$, turning %\texttt{\textbackslash bleh{} something} into ``bleh something.''
+    %\newcommand{\bleh}{bleh} $\bleh$; \bleh{} something
+\end{itemize}

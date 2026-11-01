@@ -1,0 +1,9 @@
+
+\subsection{Overview of the Packages}
+\begin{itemize}
+    \item The \texttt{etoolbox} package is use to set up $\texttt{\textbackslack{iftoggle}}$ toggles, which allow things to be toggled on and off. This is useful for maintain multiple versions of the same file, e.g. for conference and arxiv versions. 
+\end{itemize}
+\subsection{Switching Between Conference and Arxiv Versions}
+\begin{itemize}
+    \item Please use separate main files (e.g. \texttt{conference\_main.tex} and \texttt{arxiv\_main.tex} to have different versions of the main document. These should still rely on the appropriate subfiles. In the $\texttt{arxiv\_main.tex}$, please makesure that $\texttt{\textbackslack iftoggle\{arxiv\}}$ is toggled to ``true'', and set to false in $\texttt{conference\_main.tex}$
+\end{itemize}

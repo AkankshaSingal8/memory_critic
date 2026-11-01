@@ -1,0 +1,25 @@
+%!TEX root = ../main.tex
+
+%Same as the main doc - Safe and efficient RL
+Long-horizon tasks are important for robotics and modern AI, and reinforcement learning (RL)
+is a general way to solve them without hand-designed solutions. Such tasks can naturally be broken
+into a sequence of subgoals. Value Disaggregation (VaDaR) learns a separate critic for each subgoal
+and trains a single policy to maximize a weighted combination of critic values, restricted at each
+step to subgoals not yet completed. However, the online exploration VaDaR relies on is still unsafe
+in two distinct ways: kinematic safety, the physical limits on the robot’s own configuration that must
+never be crossed regardless of task, such as self-collision and joint limits, and semantic safety, the
+behavioral limits specific to the task being performed, such as not spilling the contents of a container.
+We extend VaDaR with dedicated safety heads: additional critics that, unlike task subgoal critics,
+remain persistently weighted into the policy objective rather than being switched in and out with task
+progress, so that safety functions as a standing subgoal rather than a stage-specific one. Moreover, we
+hypothesize that VaDaR with safety heads (1) is more sample-efficient than VaDaR alone, since the
+safety heads supply dense learning signal beyond sparse task reward, and (2) explores more safely
+throughout training, since the policy is biased away from unsafe behavior from the outset rather
+than only after convergence. In particular, we run analysis experiments comparing architectures for
+the safety critic heads and strategies for aggregating safety and task critics into the policy objective.
+Separately, we compare safety critics derived from offline Hamilton-Jacobi (HJ) reachability analysis
+against safety critics learned online from sparse negative reward on unsafe events. Taken together,
+Running Title
+we expect these results to show that modeling safety as a persistent subgoal within VaDaR’s critic-
+aggregation framework is a lightweight way to make online RL exploration both safer and more
+sample-efficient.

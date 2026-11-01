@@ -1,0 +1,48 @@
+== square_ph_bc_public_10demos: 28 W&B runs, 8 finished
+   seed 0: plotted z193j6vd (2026-10-23T03:35:20Z), 50 evals 10000..500000; duplicate finished runs: ['6f9fjnwn', '7lyorq0r']
+   seed 7: plotted ow1yu69a (2026-10-23T01:25:45Z), 50 evals 10000..500000; duplicate finished runs: ['hykhy361', '9x7pi4lx']
+   seed 42: plotted 4c0atz6x (2026-10-23T03:35:20Z), 50 evals 10000..500000; duplicate finished runs: ['gn9ksau7']
+== square_ph_bc_public_20demos: 16 W&B runs, 5 finished
+   seed 0: plotted xqqqsit1 (2026-10-22T23:09:54Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 7: plotted ssdivak3 (2026-10-23T01:20:49Z), 50 evals 10000..500000; duplicate finished runs: ['0npd9zgp', 'aa2ttuuw']
+   seed 42: plotted 0628dvt8 (2026-10-22T23:14:25Z), 50 evals 10000..500000; duplicate finished runs: none
+== square_ph_bc_public_50demos: 10 W&B runs, 6 finished
+   seed 0: plotted ryrx677k (2026-10-22T23:16:32Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 7: plotted 8vr1oo0g (2026-10-23T01:20:43Z), 50 evals 10000..500000; duplicate finished runs: ['92vaydv3', 's8jo6dfp', '9wk4cpsr']
+   seed 42: plotted 0czh1tf5 (2026-10-22T23:22:21Z), 50 evals 10000..500000; duplicate finished runs: none
+== square_ph_bc_public_100demos: 10 W&B runs, 6 finished
+   seed 0: plotted brjhirv2 (2026-10-22T23:31:09Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 7: plotted bivo14s6 (2026-10-23T01:21:41Z), 50 evals 10000..500000; duplicate finished runs: ['nfxewpvf']
+   seed 42: plotted cakeiaj8 (2026-10-23T01:22:59Z), 50 evals 10000..500000; duplicate finished runs: ['kjo8wdpi', 'nkignn0h']
+== square_ph_bc_public_200demos: 17 W&B runs, 7 finished
+   seed 0: plotted sox0li0k (2026-10-23T00:00:54Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 7: plotted prjdy67b (2026-10-23T02:31:11Z), 50 evals 10000..500000; duplicate finished runs: ['y0238ssd', 'k3381vzs', 'na01qanz', 'i4knwenp']
+   seed 42: plotted ibzid6mr (2026-10-23T00:21:58Z), 50 evals 10000..500000; duplicate finished runs: none
+== square_ph_ogpo_public: 3 W&B runs
+   seed 0: h2017g0w state=finished evals=206 bc_end=35000 (log 35000, {'ode': 0.5312, 'sde': 0.5938}; W&B first SDE>=0.45: 35000 -> agree) last_step=2035000
+   seed 7: q8gq63me state=finished evals=206 bc_end=35000 (log 35000, {'ode': 0.4688, 'sde': 0.5938}; W&B first SDE>=0.45: 35000 -> agree) last_step=2035000
+   seed 42: 5bz7k7ar state=finished evals=207 bc_end=35000 (log 35000, {'ode': 0.4531, 'sde': 0.5781}; W&B first SDE>=0.45: 35000 -> agree) last_step=2035000
+== square_mh_bc_public_10demos: 20 W&B runs, 6 finished
+   seed 0: plotted mrfo87aw (2026-10-23T02:36:45Z), 50 evals 10000..500000; duplicate finished runs: ['2je7ts0a']
+   seed 7: plotted 64hwanf3 (2026-10-23T00:32:22Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 42: plotted zcdng168 (2026-10-23T03:34:23Z), 50 evals 10000..500000; duplicate finished runs: ['l7o14vb7', '2vesgop8']
+== square_mh_bc_public_20demos: 20 W&B runs, 8 finished
+   seed 0: plotted 2nzcd3vw (2026-10-23T00:35:46Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 7: plotted 5k28ufzm (2026-10-23T03:14:29Z), 50 evals 10000..500000; duplicate finished runs: ['vwdq3puf', 'noqi2wqb', 'qpx4di58']
+   seed 42: plotted t471xtu2 (2026-10-23T01:42:00Z), 50 evals 10000..500000; duplicate finished runs: ['3b1mubc3', '3o0b5ohi']
+== square_mh_bc_public_50demos: 24 W&B runs, 10 finished
+   seed 0: plotted jhqaqpgo (2026-10-23T02:38:58Z), 50 evals 10000..500000; duplicate finished runs: ['lzcykgsi', '62kybbbd', '19hhnj7y']
+   seed 7: plotted b7jru181 (2026-10-23T03:34:23Z), 50 evals 10000..500000; duplicate finished runs: ['vgjlwjm4', 'iisuoqrh', '4mj2etz5']
+   seed 42: plotted gsycwd5q (2026-10-23T01:52:41Z), 50 evals 10000..500000; duplicate finished runs: ['ocsjsb03']
+== square_mh_bc_public_100demos: 20 W&B runs, 5 finished
+   seed 0: plotted 2dqy3m3p (2026-10-23T01:00:45Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 7: plotted svdvk6q9 (2026-10-23T07:25:14Z), 50 evals 10000..500000; duplicate finished runs: ['z2t0ipvl']
+   seed 42: plotted k68qwogr (2026-10-23T02:21:29Z), 50 evals 10000..500000; duplicate finished runs: ['v0ag2uwa']
+== square_mh_bc_public_200demos: 13 W&B runs, 6 finished
+   seed 0: plotted zafxdsp3 (2026-10-23T01:55:19Z), 50 evals 10000..500000; duplicate finished runs: ['3t299d51']
+   seed 7: plotted 3e37fk91 (2026-10-23T01:11:30Z), 50 evals 10000..500000; duplicate finished runs: none
+   seed 42: plotted ciaim8h8 (2026-10-23T03:18:23Z), 50 evals 10000..500000; duplicate finished runs: ['lem5z3pa', '675ovryd']
+== square_mh_ogpo_public: 3 W&B runs
+   seed 0: 7o0917r9 state=finished evals=219 bc_end=100000 (log 100000, {'ode': 0.1875, 'sde': 0.4531}; W&B first SDE>=0.45: 100000 -> agree) last_step=2100000
+   seed 7: 2m5lk6gu state=finished evals=217 bc_end=90000 (log 90000, {'ode': 0.2656, 'sde': 0.4688}; W&B first SDE>=0.45: 170000 -> DISAGREE) last_step=2090000
+   seed 42: c84jx056 state=finished evals=219 bc_end=95000 (log 95000, {'ode': 0.25, 'sde': 0.5781}; W&B first SDE>=0.45: 95000 -> agree) last_step=2095000

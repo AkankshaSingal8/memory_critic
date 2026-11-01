@@ -1,0 +1,10 @@
+#!/bin/bash
+# OGPO_public's square.sh runs `uv run python ogpo/main.py ...`. Under train_ogpo_public.sbatch,
+# run the public repo's already-synced venv directly instead: the trainer is then a plain child
+# process that receives the forwarded SIGTERM (uv would sit in between), and no job re-syncs
+# the environment. Any other uv command goes to the real uv.
+if [ "${1:-}" = run ] && [ "${2:-}" = python ]; then
+    shift 2
+    exec "$OGPO_PUBLIC/.venv/bin/python" "$@"
+fi
+exec "$REAL_UV" "$@"

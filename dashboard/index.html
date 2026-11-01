@@ -1,0 +1,1082 @@
+<style>
+  .sq { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: grid; gap: var(--cds-gap-xl); }
+  .sq-head { display: grid; gap: var(--cds-gap-sm); }
+  .sq-title { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+  .sq-take { margin: 0; max-width: 70ch; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); line-height: 1.5; }
+  .sq-take b, .sq-table b { font-weight: 600; color: var(--color-fg); font-variant-numeric: tabular-nums; }
+  .sq-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cds-gap-md); }
+  .sq-seg { display: inline-flex; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+  .sq-seg button { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-md); border: 0; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .sq-seg button[aria-pressed="true"] { background: var(--color-panel); color: var(--color-fg); font-weight: 600; }
+  .sq-seg button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: -2px; }
+  .sq-hint { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .sq-section { display: grid; gap: var(--cds-gap-md); }
+  .sq-h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .sq-sub { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); max-width: 80ch; line-height: 1.5; }
+  .sq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--cds-gap-md); }
+  .sq-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-sm); min-width: 0; align-content: start; }
+  .sq-card h3 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .sq-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs) var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); min-height: 1.2em; }
+  .sq-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sq-sw { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .sq-dia { width: 8px; height: 8px; transform: rotate(45deg); border: 1.5px solid var(--color-fg); display: inline-block; box-sizing: border-box; }
+  .sq-band { width: 14px; height: 10px; border-radius: 2px; display: inline-block; opacity: .25; }
+  .sq-chart { position: relative; min-height: 260px; }
+  .sq-chart svg { display: block; overflow: visible; }
+  .sq-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; z-index: 2; font-variant-numeric: tabular-nums; }
+  .sq-tip .t { color: var(--cds-text-secondary); margin-bottom: 2px; }
+  .sq-tip .r { display: flex; align-items: center; gap: 6px; }
+  .sq-tip .r em { font-style: normal; color: var(--color-fg-muted); }
+  .sq-fail { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 260px; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .sq-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+  .sq-tablewrap { overflow-x: auto; }
+  .sq-table { border-collapse: collapse; width: 100%; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+  .sq-table th, .sq-table td { text-align: left; padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); }
+  .sq-table th { font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--color-fg-muted); }
+  .sq-table .num { text-align: right; }
+  .sq-table td.sel { font-weight: 600; }
+  .sq-tabs { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); border-bottom: 1px solid var(--color-border-line); }
+  .sq-tabs button { font: inherit; font-size: var(--cds-font-size-body); padding: var(--cds-pad-xs) var(--cds-pad-md); border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: transparent; color: var(--color-fg-muted); cursor: pointer; }
+  .sq-tabs button[aria-selected="true"] { color: var(--color-fg); border-bottom-color: var(--color-fg); font-weight: 600; }
+  .sq-tabs button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: -2px; }
+  .sq-page { display: grid; gap: var(--cds-gap-xl); }
+  .sq-page[hidden] { display: none; }
+  .pl-prose { margin: 0; max-width: 75ch; font-size: var(--cds-font-size-body); line-height: 1.55; }
+  .pl-prose code, .pl-list code, .pl-arm code, .bd-node code { font-size: .92em; }
+  .pl-prose b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pl-list { margin: 0; padding-left: 1.3em; max-width: 75ch; display: grid; gap: var(--cds-gap-sm); line-height: 1.5; }
+  .pl-list .gate { display: block; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .pl-arms { display: grid; gap: 0; }
+  .pl-arm { display: grid; grid-template-columns: 3rem minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: var(--cds-gap-sm); padding: var(--cds-pad-sm) 0; border-bottom: 1px solid var(--color-border-line); line-height: 1.45; }
+  .pl-arm.hd { font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--color-fg-muted); padding-top: 0; }
+  .pl-arm .id { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pl-arm.mem .id { box-shadow: inset 3px 0 0 var(--bd-accent, var(--color-fg)); padding-left: 8px; }
+  @container plarms (max-width: 560px) {
+    .pl-arm { grid-template-columns: 2.5rem minmax(0, 1fr); }
+    .pl-arm > :nth-child(n+3) { grid-column: 2; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+    .pl-arm.hd { display: none; }
+  }
+  .pl-armwrap { container: plarms / inline-size; }
+  .bd { container: bd / inline-size; display: grid; gap: var(--cds-gap-lg); }
+  .bd-key { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs) var(--cds-gap-lg); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .bd-key span { display: inline-flex; align-items: center; gap: 6px; }
+  .bd-key i { display: inline-block; width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid var(--color-fg-muted); box-sizing: border-box; }
+  .bd-key i.todo { border-style: dashed; }
+  .bd-key i.mem { border-color: var(--color-border-line); box-shadow: inset 4px 0 0 var(--bd-accent, var(--color-fg)); }
+  .bd-lane { display: grid; gap: var(--cds-gap-sm); }
+  .bd-lane h4 { margin: 0; font-size: var(--cds-font-size-caption); font-weight: 600; color: var(--color-fg-muted); letter-spacing: .02em; }
+  .bd-flow { display: flex; align-items: stretch; gap: 6px; }
+  .bd-node { flex: 1 1 0; min-width: 0; background: var(--color-bg); border: 1.5px solid var(--color-fg-muted); border-radius: var(--cds-radius); padding: var(--cds-pad-sm) var(--cds-pad-md); display: grid; gap: 4px; align-content: start; font-size: var(--cds-font-size-caption); line-height: 1.4; color: var(--color-fg-muted); }
+  .bd-node b { display: block; font-size: var(--cds-font-size-body); font-weight: 600; color: var(--color-fg); line-height: 1.3; }
+  .bd-node.todo { border-style: dashed; }
+  .bd-node.mem { box-shadow: inset 4px 0 0 var(--bd-accent, var(--color-fg)); padding-left: calc(var(--cds-pad-md) + 4px); }
+  .bd-stack { flex: 1 1 0; min-width: 0; display: grid; gap: 6px; }
+  .bd-arr { flex: 0 0 auto; align-self: center; color: var(--color-fg-muted); display: grid; place-items: center; }
+  .bd-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .bd-chips span { border: 1px solid var(--color-border-line); border-radius: 999px; padding: 0 7px; font-size: var(--cds-font-size-caption); color: var(--color-fg); white-space: nowrap; }
+  .bd-chips span.mem { box-shadow: inset 3px 0 0 var(--bd-accent, var(--color-fg)); padding-left: 9px; }
+  .bd-loop { display: flex; align-items: center; gap: 6px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .bd-join { display: flex; align-items: center; gap: 6px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding-left: 2px; }
+  @container bd (max-width: 720px) {
+    .bd-flow { flex-direction: column; }
+    .bd-arr { transform: rotate(90deg); }
+  }
+  .rc-list { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; line-height: 1.5; font-size: var(--cds-font-size-body); }
+  .rc-list code, .rc-eq code { font-size: .92em; }
+  .rc-split { display: grid; gap: var(--cds-gap-sm); }
+  .rc-bar { display: flex; gap: 2px; height: 28px; }
+  .rc-bar span { border-radius: 4px; min-width: 6px; }
+  .rc-bar .tr { flex: 288 1 0; background: var(--rc-c0, var(--color-fg)); }
+  .rc-bar .va { flex: 32 1 0; background: var(--color-fg-muted); }
+  .rc-bar .te { flex: 80 1 0; background: var(--rc-c1, var(--color-fg)); }
+  .rc-split .sq-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .rc-figure { margin: 0; display: grid; gap: var(--cds-gap-sm); }
+  .rc-fig { display: block; max-width: 100%; height: auto; color: var(--color-fg); }
+  .rc-fig text { font-family: var(--font-anthropic-sans); font-size: 12px; fill: currentColor; }
+  .rc-fig text.m { fill: var(--color-fg-muted); }
+  .rc-fig text.b { font-weight: 600; }
+  .rc-steps > li { margin-bottom: 4px; }
+  .rc-steps ol { margin: 6px 0 0; padding-left: 1.2em; display: grid; gap: 4px; }
+  .rc-eq { margin: 0; padding: var(--cds-pad-sm) var(--cds-pad-md); border-left: 3px solid var(--color-border-line); font-size: var(--cds-font-size-body); line-height: 1.5; }
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+</style>
+
+<div class="sq">
+  <div class="sq-tabs" role="tablist" aria-label="Pages">
+    <button type="button" role="tab" id="tab-results" data-page="results" aria-controls="results" aria-selected="true">Results</button>
+    <button type="button" role="tab" id="tab-plan" data-page="plan" aria-controls="plan" aria-selected="false">Plan: memory critic for BoN</button>
+    <button type="button" role="tab" id="tab-rollouts" data-page="rollouts" aria-controls="rollouts" aria-selected="false">Rollouts and critic</button>
+  </div>
+
+  <div class="sq-page" id="results" role="tabpanel" aria-labelledby="tab-results">
+  <header class="sq-head" id="top">
+    <h1 class="sq-title">Square: Flow BC vs OGPO</h1>
+    <p class="sq-take" id="takeaway">
+      OGPO with critics ends at <b data-source="finals" data-where="key=rl-ph" class="sq-v">—</b> on square-ph and
+      <b data-source="finals" data-where="key=rl-mh" class="sq-v">—</b> on square-mh after 2M online steps.
+      With 200 demos, Flow BC (this repo) ends at <b data-source="finals" data-where="key=flow-ph" class="sq-v">—</b> /
+      <b data-source="finals" data-where="key=flow-mh" class="sq-v">—</b> (ph / mh), and the OGPO repo's BC phase at
+      <b data-source="finals" data-where="key=ogbc-ph" class="sq-v">—</b> /
+      <b data-source="finals" data-where="key=ogbc-mh" class="sq-v">—</b>.
+      Showing <span id="mode-word">SDE</span> success.
+    </p>
+    <div class="sq-bar">
+      <div class="sq-seg" role="group" aria-label="Sampling mode">
+        <button type="button" id="mode-sde" data-mode="sde" aria-pressed="true">SDE sampling</button>
+        <button type="button" id="mode-ode" data-mode="ode" aria-pressed="false">ODE sampling</button>
+      </div>
+      <span class="sq-hint">Success rate over 64 eval episodes per seed; lines are the mean of seeds 0, 7 and 42.</span>
+    </div>
+  </header>
+
+  <section class="sq-section" id="final">
+    <h2 class="sq-h2">Final eval</h2>
+    <p class="sq-sub">BC rows: last eval at 500k BC steps with 200 demos (3-point smoothed). OGPO rows: last eval at 2M online steps on the full dataset (50k-step average).</p>
+    <div class="sq-card">
+      <div class="sq-tablewrap">
+        <table class="sq-table" id="finals-table" data-source="finals" data-row-key="key">
+          <thead><tr>
+            <th data-field="method">Method</th>
+            <th data-field="dataset">Dataset</th>
+            <th data-field="demos">Demos</th>
+            <th data-field="ode" class="num">ODE</th>
+            <th data-field="sde" class="num">SDE</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="sq-section" id="flow-bc">
+    <h2 class="sq-h2">Flow BC (this repo, qipm runs)</h2>
+    <p class="sq-sub">train_flow_bc.sbatch on square, one line per dataset size, over 500k BC steps. Each seed is 3-point smoothed before averaging.</p>
+    <div class="sq-grid">
+      <div class="sq-card" id="card-flow-ph"><h3>square-ph</h3><div class="sq-legend"></div><div class="sq-chart dash-skeleton" id="chart-flow-ph" data-source="flow_bc"></div></div>
+      <div class="sq-card" id="card-flow-mh"><h3>square-mh</h3><div class="sq-legend"></div><div class="sq-chart dash-skeleton" id="chart-flow-mh" data-source="flow_bc"></div></div>
+    </div>
+  </section>
+
+  <section class="sq-section" id="ogpo-bc">
+    <h2 class="sq-h2">OGPO repo, BC phase only</h2>
+    <p class="sq-sub">The public OGPO actor and BC optimiser with online RL turned off, run for the full 500k BC steps. Same dataset sizes and smoothing as above.</p>
+    <div class="sq-grid">
+      <div class="sq-card" id="card-ogbc-ph"><h3>square-ph</h3><div class="sq-legend"></div><div class="sq-chart dash-skeleton" id="chart-ogbc-ph" data-source="ogpo_bc"></div></div>
+      <div class="sq-card" id="card-ogbc-mh"><h3>square-mh</h3><div class="sq-legend"></div><div class="sq-chart dash-skeleton" id="chart-ogbc-mh" data-source="ogpo_bc"></div></div>
+    </div>
+  </section>
+
+  <section class="sq-section" id="ogpo-rl">
+    <h2 class="sq-h2">OGPO with critics (online RL)</h2>
+    <p class="sq-sub">Full dataset. Step 0 is the BC hand-off (first SDE eval at or above 45%); after that, a 50k-step moving average. Band is the min–max over seeds.</p>
+    <div class="sq-grid">
+      <div class="sq-card" id="card-rl-ph"><h3>square-ph</h3><div class="sq-legend"></div><div class="sq-chart dash-skeleton" id="chart-rl-ph" data-source="ogpo_rl"></div></div>
+      <div class="sq-card" id="card-rl-mh"><h3>square-mh</h3><div class="sq-legend"></div><div class="sq-chart dash-skeleton" id="chart-rl-mh" data-source="ogpo_rl paper_mh"></div></div>
+    </div>
+  </section>
+  </div>
+
+  <div class="sq-page" id="plan" role="tabpanel" aria-labelledby="tab-plan" hidden>
+    <header class="sq-head" id="plan-top">
+      <h1 class="sq-title">Plan: an IMPRINT memory critic for best-of-N</h1>
+      <p class="sq-take">Keep each trained OGPO actor frozen and sample 8 action chunks at every decision point. Pick one with a critic that also sees an IMPRINT memory of the episode so far, then compare against the same pick made without memory. Nothing here is built yet. The full write-up is <code>docs/bon_memory_critic.md</code>.</p>
+    </header>
+
+    <section class="sq-section" id="plan-diagram">
+      <h2 class="sq-h2">Pipeline</h2>
+      <p class="sq-sub">The top row is built once, offline. The bottom row runs at every decision point during eval. Only the scorer changes between arms; the actor, the 8 candidates and the env seeds stay the same.</p>
+      <div class="sq-card">
+        <div class="bd">
+          <div class="bd-key" aria-label="Diagram key">
+            <span><i></i>Exists today</span>
+            <span><i class="todo"></i>To build</span>
+            <span><i class="mem"></i>Memory path only</span>
+          </div>
+
+          <div class="bd-lane" id="bd-offline">
+            <h4>1 · Offline: build the critics</h4>
+            <div class="bd-flow">
+              <div class="bd-node todo"><b>Rollouts</b>Each frozen OGPO policy, plain SDE sampling, K episodes. Plus episodes cut from its 2M-step replay buffer.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node todo mem"><b>IMPRINT Stage 1</b>Encoder compresses history into 256 tokens by reconstructing past actions, proprio, object state and progress.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node todo mem"><b>Freeze and cache</b>One memory vector <code>m_t</code> per step, pooled from the tokens.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node todo"><b>Train critics</b>Same data, targets and network; only the input differs.
+                <span class="bd-chips"><span>Q(s, a)</span><span>Q(s, t, a)</span><span class="mem">Q(s, m, a)</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bd-join"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>The trained critics plug into the scorer below.</div>
+
+          <div class="bd-lane" id="bd-online">
+            <h4>2 · Online: best-of-N at eval</h4>
+            <div class="bd-flow">
+              <div class="bd-node"><b>Square env</b>32 parallel envs, low-dim obs <code>s_t</code> (23 dims).</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-stack">
+                <div class="bd-node"><b>Frozen OGPO actor</b>Samples 8 candidate chunks of 4 actions from <code>s_t</code>.</div>
+                <div class="bd-node todo mem"><b>Memory server</b>Fed every env step; returns <code>m_t</code> from steps 0..t. Shared by all 8 candidates.</div>
+              </div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Score each chunk</b>One scorer per arm:
+                <span class="bd-chips"><span>none</span><span>checkpoint Q</span><span>retrained Q</span><span>clock Q</span><span class="mem">memory Q</span></span>
+              </div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Execute the best</b>Run the top-scoring chunk for 4 env steps.</div>
+            </div>
+            <div class="bd-loop"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to the env for the next decision, until success or the episode cap.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sq-section" id="plan-bon">
+      <h2 class="sq-h2">What BoN already does in OGPO</h2>
+      <p class="pl-prose"><code>sample_actions_BON</code> in OGPO_public draws 8 chunks from the EMA actor with the SDE sampler. It scores each chunk with the lower of 2 members drawn at random from a 10-member Q ensemble and keeps the best. The OGPO SDE curves on the Results tab went through it, and the ODE curves did not. A memory critic swaps out only that scoring step.</p>
+      <p class="pl-prose">The BC phase never trains the critic, but its SDE eval still calls this BoN. The SDE curves for "OGPO repo, BC phase only" are therefore a pick among 8 made by a random critic, close to plain SDE sampling with one sample.</p>
+      <p class="pl-prose">IMPRINT itself never uses memory as a critic. Its only value-like part is the Stage-1 progress head, which reads the memory tokens with no action input. It can't tell 8 candidates apart, so the memory critic adds the action as a separate input: <code>Q(s_t, m_t, a)</code>. Candidate chunks never enter the encoder, which was trained on executed actions only.</p>
+    </section>
+
+    <section class="sq-section" id="plan-arms">
+      <h2 class="sq-h2">Arms</h2>
+      <p class="sq-sub">Same frozen actor, 8 candidates and eval seeds in every arm. A3, A4 and A5 train on the same rollouts with the same targets and network.</p>
+      <div class="sq-card pl-armwrap">
+        <div class="pl-arms">
+          <div class="pl-arm hd"><span>Arm</span><span>Scorer</span><span>Status</span><span>Why it's there</span></div>
+          <div class="pl-arm"><span class="id">A0</span><span>None, ODE sampler</span><span>Logged in W&amp;B</span><span>Deterministic baseline</span></div>
+          <div class="pl-arm"><span class="id">A1</span><span>None, one SDE sample</span><span>One flag</span><span>How much BoN gains at all</span></div>
+          <div class="pl-arm"><span class="id">A2</span><span>Checkpoint's own critic <code>Q(s, a)</code></span><span>Logged in W&amp;B</span><span>The existing BoN</span></div>
+          <div class="pl-arm"><span class="id">A3</span><span>Markov critic retrained on our rollouts</span><span>To build</span><span>Rules out "new training data" as the cause</span></div>
+          <div class="pl-arm"><span class="id">A4</span><span>Clock critic <code>Q(s, t, a)</code></span><span>To build</span><span>Rules out "memory is a clock": the 400-step cap and the per-step subtask penalty make Q depend on t</span></div>
+          <div class="pl-arm mem"><span class="id">A5</span><span>Memory critic <code>Q(s, m_t, a)</code>, frozen IMPRINT tokens</span><span>To build</span><span>The claim</span></div>
+          <div class="pl-arm"><span class="id">A6</span><span>GRU history critic, trained end to end (optional)</span><span>To build</span><span>Does IMPRINT pretraining beat plain recurrence?</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sq-section" id="plan-a3">
+      <h2 class="sq-h2">Step one: train the no-memory critic (A3)</h2>
+      <p class="sq-sub">Built on 27 Oct with changes: it ran on the flow-BC policies with 8-step chunks and pure Monte Carlo targets. The Rollouts and critic tab has what actually ran. It was meant to come before anything touches IMPRINT. The memory and clock critics reuse its data, targets and training loop and add one input each. OGPO_public already has the training step; the new code is the rollouts, the dataset builder and the swap into BoN.</p>
+      <div class="sq-card">
+        <div class="bd">
+          <div class="bd-key" aria-label="Diagram key">
+            <span><i></i>Code exists in OGPO_public</span>
+            <span><i class="todo"></i>To build</span>
+          </div>
+
+          <div class="bd-lane" id="a3-data">
+            <h4>1 · Data from the frozen policy</h4>
+            <div class="bd-flow">
+              <div class="bd-node"><b>OGPO checkpoint</b>A 10 or 20-demo final. Actor frozen; its own critic is kept only for comparison (A2).</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node todo"><b>Rollouts</b>Plain SDE, one sample per decision, 32 envs, about 1000 episodes. Save obs, action, reward, success, how the episode ended, episode id, step, sim state.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node todo"><b>Episode dataset</b><code>terminals</code> = 1 at every episode end; <code>masks</code> = 0 only at success. Monte Carlo returns from <code>compute_mc_returns</code>. Hold out a tenth of the episodes.</div>
+            </div>
+          </div>
+
+          <div class="bd-join"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Batches of 256 chunks of 4 steps, with the logged next chunk and the return.</div>
+
+          <div class="bd-lane" id="a3-train">
+            <h4>2 · Train, check, use</h4>
+            <div class="bd-flow">
+              <div class="bd-node"><b>Fresh critic</b>OGPO's ensemble of 10 MLPs (4×512, LayerNorm). Input: obs plus the flattened 4×7 chunk.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b><code>bc_q_update</code></b>TD loss toward the target critic at the logged next chunk, plus MSE to the Monte Carlo return.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node todo"><b>Held-out checks</b>Error against the return, and success AUC at matched steps. The checkpoint's critic gets the same two checks.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node todo"><b>BoN eval</b>Swap the new critic into the loaded agent and run <code>sample_actions_BON</code> with the same seeds as A1 and A2.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="pl-prose">The rollouts use one sample, not BoN, so the data comes from the policy that will produce the candidates. The critic then estimates Q for that policy, and BoN is a one-step improvement on it. Training on the checkpoint's replay buffer skips the rollouts and makes a quick pipeline test. That buffer mixes every policy from training, though, so it doesn't count as A3.</p>
+    </section>
+
+    <section class="sq-section" id="plan-policies">
+      <h2 class="sq-h2">Which policies, and how much room there is</h2>
+      <p class="pl-prose">Only the OGPO runs saved checkpoints: actor, critic and replay buffer for square ph and mh at every demo count, seeds 0, 7 and 42. The OGPO BC-only sweep saved nothing, and this repo's flow-BC checkpoints use a different actor with no critic. BoN on a pure BC policy therefore needs a BC rerun with saving turned on, or a wrapper for those flow-BC checkpoints. That wrapper now exists (<code>collect_flow_bc_rollouts.py --bon_n</code>); see the Rollouts and critic tab.</p>
+      <p class="pl-prose">On the full datasets, OGPO already ends at <b class="pl-v" data-source="finals" data-where="key=rl-ph" data-field="ode">—</b> ODE and <b class="pl-v" data-source="finals" data-where="key=rl-ph" data-field="sde">—</b> SDE on ph, and <b class="pl-v" data-source="finals" data-where="key=rl-mh" data-field="ode">—</b> and <b class="pl-v" data-source="finals" data-where="key=rl-mh" data-field="sde">—</b> on mh, which leaves little to rerank. The policy only sees the 23-dim obs, so history can help the critic only through what that obs leaves out (velocities, contact, a failed grasp the object pose no longer shows) and through the time cap. Start with the 10 and 20-demo checkpoints, where critics are weaker and failures more common.</p>
+    </section>
+
+    <section class="sq-section" id="plan-steps">
+      <h2 class="sq-h2">Order of work</h2>
+      <div class="sq-card">
+        <ol class="pl-list">
+          <li>Load each OGPO final and run A0, A1 and A2 with a standalone eval script. <span class="gate">Check: A2 matches the W&amp;B SDE final within noise, and A2 beats A1 somewhere.</span></li>
+          <li>Train the no-memory critic (A3) as in the section above, and run it in BoN next to A1 and A2. <span class="gate">Check: on held-out episodes it fits the returns at least as well as the checkpoint's critic.</span> <span class="gate">Status: trained on the flow-BC policies; BoN eval submitted 27 Oct.</span></li>
+          <li>Reuse the A3 rollouts for the memory work, and cut the replay buffers into episodes as extra Stage-1 data. <span class="gate">Check: the rollouts hold enough failures to learn from.</span></li>
+          <li>Build a low-dim IMPRINT store (object vector as a one-token visual stream, so no rendering) and train Stage 1 once on one L40S. <span class="gate">Check: reconstruction of past actions and proprio beats a no-history baseline.</span></li>
+          <li>Freeze the encoder, cache <code>m_t</code> for every step, and train A3, A4 and A5 with identical configs.</li>
+          <li>Offline checks on held-out episodes: success AUC of Q at matched steps, and how often A5 picks the same candidate as A3. Optionally, restore sim states and roll out all 8 candidates to get true rankings. <span class="gate">Check: A5 ranks differently from A3. If not, the online result will be the same, so stop here.</span></li>
+          <li>Memory server in <code>.venv-imprint</code> plus the online BoN eval in OGPO's env, with the same reset seeds and actor noise in every arm, 256 episodes per checkpoint and arm. <span class="gate">Check: A5 beats both A3 and A4 at 10 and 20 demos by more than the spread across seeds. If not, move to a task where history carries more (images only, occlusion, tool_hang).</span></li>
+          <li>Add the BoN results to this dashboard.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="sq-section" id="plan-questions">
+      <h2 class="sq-h2">Open questions</h2>
+      <ol class="pl-list">
+        <li>Start with the OGPO finals at 10 and 20 demos (ph and mh, 3 seeds)? That's the recommendation.</li>
+        <li>Should pure BC policies get BoN too? Both options need extra work (rerun or wrapper).</li>
+        <li>Low-dim memory only at first, or render images during the new rollouts so an image memory can follow without collecting again?</li>
+        <li>Monte Carlo targets (simple, on-policy) or TD targets (closer to how the checkpoint critic was trained)?</li>
+      </ol>
+    </section>
+  </div>
+
+  <div class="sq-page" id="rollouts" role="tabpanel" aria-labelledby="tab-rollouts" hidden>
+    <header class="sq-head" id="rc-top">
+      <h1 class="sq-title">Rollouts and the no-memory critic (A3)</h1>
+      <p class="sq-take">Each of the 30 frozen flow-BC policies ran 400 episodes, and every env step was saved. One Monte Carlo critic <code>Q(s, a)</code> was then fit on all of them pooled. The memory and clock critics will reuse these files, the same episode split and the same training loop, so their numbers line up with this one.</p>
+    </header>
+
+    <section class="sq-section" id="rc-overview">
+      <h2 class="sq-h2">End to end</h2>
+      <p class="sq-sub">Scripts: <code>collect_flow_bc_rollouts.{py,sbatch}</code>, <code>check_rollouts.py</code>, <code>train_mc_critic.{py,sbatch}</code>, <code>bon_eval.sbatch</code>. Docs: <code>docs/collect_flow_bc_rollouts.md</code>.</p>
+      <div class="sq-card">
+        <div class="bd">
+          <div class="bd-key" aria-label="Diagram key">
+            <span><i></i>Done</span>
+            <span><i class="todo"></i>Running</span>
+          </div>
+
+          <div class="bd-lane" id="rc-bd-collect">
+            <h4>1 · Collect (CPU array job, one task per policy)</h4>
+            <div class="bd-flow">
+              <div class="bd-node"><b>30 frozen policies</b>Flow BC, square ph and mh, 10 to 200 demos, seeds 0, 7, 42. File <code>selected/target_100.pkl</code>.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Rollout loop</b>8 envs at a time, 50 batches. SDE sampler, one chunk per decision.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Shards, then merge</b>One file per finished batch, so a preempted task resumes. Merged into one <code>.npz</code> per policy.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Check</b><code>check_rollouts.py</code> on every file. All 30 pass.</div>
+            </div>
+          </div>
+
+          <div class="bd-join"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>400 episodes per policy, every env step saved.</div>
+
+          <div class="bd-lane" id="rc-bd-build">
+            <h4>2 · Build the training set</h4>
+            <div class="bd-flow">
+              <div class="bd-node"><b>Decision points</b>Keep the steps where the policy drew a new chunk (<code>chunk_pos == 0</code>).</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Input</b>Obs (23) plus the 8 actions that followed (56).</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Target</b>Discounted return to the episode end, γ = 0.99.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Split by episode</b>Same split for all 30 policies: train, val, test.</div>
+            </div>
+          </div>
+
+          <div class="bd-join"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 4v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Rows of (obs, chunk, return), pooled over all policies.</div>
+
+          <div class="bd-lane" id="rc-bd-train">
+            <h4>3 · Train, select, use (one GPU, critic seeds 0, 1, 2)</h4>
+            <div class="bd-flow">
+              <div class="bd-node"><b>Ensemble of 10</b>qipm's <code>Value</code> critic, 4×512 MLPs with LayerNorm.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Regress on the return</b>MSE, batch 256, 200k steps.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Keep the best val</b>Val MSE every 5k steps. Lowest one is <code>critic_best.pkl</code>.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-stack">
+                <div class="bd-node"><b>Test metrics</b>Per group on held-out episodes, in <code>metrics.json</code>.</div>
+                <div class="bd-node todo"><b>BoN eval</b>Scores N candidate chunks per decision.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sq-section" id="rc-loop">
+      <h2 class="sq-h2">How one rollout runs</h2>
+      <p class="sq-sub">The stepping loop is a copy of the eval's <code>evaluate_qipm_parallel</code> without the Q tracking. Env and agent come from the eval's own builders in <code>eval_bc_run.py</code>, so the controller, dataset root and flags match the eval.</p>
+      <div class="sq-card">
+        <div class="bd">
+          <div class="bd-lane" id="rc-bd-loop">
+            <h4>Per env, per step</h4>
+            <div class="bd-flow">
+              <div class="bd-node"><b>Reset</b>Episode <code>e</code> starts from seed 10,000,000 + <code>e</code>.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Queue empty?</b>Then the SDE actor reads the obs and returns a chunk of 8 actions. This step gets <code>chunk_pos</code> 0.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Pop one action</b>Clip to [−1, 1]. The clipped action is what gets saved.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>Step and record</b>Save obs, action, reward, next obs, flags, ids.</div>
+            </div>
+            <div class="bd-loop"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Repeat until success or step 400. A finished env sits idle until all 8 in the batch are done.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sq-grid">
+        <div class="sq-card">
+          <h3>Policies</h3>
+          <ul class="rc-list">
+            <li>30 runs from <code>train_flow_bc.sbatch</code>: square ph and mh, 10/20/50/100/200 demos, seeds 0/7/42.</li>
+            <li>Each uses <code>selected/target_100.pkl</code>, the step with the best 3-point smoothed ODE success.</li>
+            <li>The actor sees the 23-dim low-dim state and outputs 8 actions of 7 dims each.</li>
+            <li>Name: <code>square_{ph|mh}_{N}demos_seed{S}_sde</code>. The source step is in the JSON next to each file.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Sampling</h3>
+          <ul class="rc-list">
+            <li>SDE (<code>agent.sample_actions</code>): target actor plus noise net, one sample per decision, no best-of-N.</li>
+            <li>It is the same sampler as the <code>eval_sde</code> curves on the Results tab.</li>
+            <li>SDE over ODE because a critic needs different outcomes from the same start. ODE varies only through its initial noise.</li>
+            <li>Policy noise for batch <code>b</code> is <code>fold_in(PRNGKey(1000), b)</code>. All 30 policies share base key 1000, and a resumed task draws the same noise.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Episodes and start states</h3>
+          <ul class="rc-list">
+            <li>400 episodes per policy, in 50 batches of 8 parallel envs.</li>
+            <li>Episode <code>e</code> has the same start scene for every policy, so results pair up across demo counts.</li>
+            <li>Start seeds begin at 10,000,000. Eval seeds stop at 500,063, so no eval scene is reused.</li>
+            <li>An episode ends on success (<code>terminated</code>) or at 400 steps (<code>truncated</code>).</li>
+            <li>Autoreset is off, so the last <code>next_obs</code> is the true final state.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>What each file holds</h3>
+          <ul class="rc-list">
+            <li><code>&lt;policy_id&gt;.npz</code> plus <code>.json</code> metadata, in <code>/data/user_data/asingal2/memory_critic/rollouts/flow_bc_target100/</code>.</li>
+            <li>Per step: obs, action, reward, next_obs, terminated, truncated, done, is_success, episode_id, timestep, chunk_pos, and 3 subtask flags.</li>
+            <li>Per episode: success, length, return, start seed.</li>
+            <li>If an episode succeeds partway through a chunk, the rest of that chunk never ran and is not saved.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Running and checking</h3>
+          <ul class="rc-list">
+            <li>Slurm array on <code>preempt</code>, one task per policy: CPU only, 10 cores, 24 GB.</li>
+            <li>On preemption the task stops between batches, requeues and skips the batches already on disk.</li>
+            <li><code>check_rollouts.py</code> tests each file: step count equals the summed episode lengths, one done flag per episode, <code>next_obs[t] == obs[t+1]</code>, <code>chunk_pos == timestep mod 8</code>, and success matches the last step.</li>
+            <li>Run on the eval's own seeds, the collector matched <code>eval_sde</code> within 64-episode noise.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="sq-section" id="rc-critic">
+      <h2 class="sq-h2">How the critic is trained</h2>
+      <p class="sq-sub">One critic for all 30 policies, trained three times with critic seeds 0, 1 and 2. The network and optimizer are qipm's own critic settings; only the data and target are new.</p>
+      <div class="sq-card" id="rc-row">
+        <h3>What one training row is cut from</h3>
+        <figure class="rc-figure">
+<svg class="rc-fig" viewBox="0 0 980 530" width="100%" role="img" aria-label="One training row: at a decision point t, the input is the state s_t and the next 8 executed actions; the target G_t is the discounted sum of the logged rewards from t to the end of the episode, which keeps summing minus one third per step until step 400 when an episode stalls; ten MLPs each predict Q and each is regressed on G_t.">
+<defs><marker id="rcf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="currentColor"/></marker></defs>
+<text x="158" y="38" text-anchor="end" class="" >decision points</text>
+<text x="158" y="78" text-anchor="end" class="" >executed actions</text>
+<text x="158" y="138" text-anchor="end" class="" >state</text>
+<text x="158" y="172" text-anchor="end" class="" >reward r_k</text>
+<text x="158" y="188" text-anchor="end" class="m" >successful episode</text>
+<path d="M171.0 30 L181.0 30 L176.0 39 Z" style="fill: var(--color-fg-muted)"/>
+<path d="M283.0 30 L293.0 30 L288.0 39 Z" style="fill: var(--color-fg-muted)"/>
+<path d="M395.0 30 L405.0 30 L400.0 39 Z" style="fill: var(--rc-c0)"/>
+<path d="M507.0 30 L517.0 30 L512.0 39 Z" style="fill: var(--color-fg-muted)"/>
+<path d="M619.0 30 L629.0 30 L624.0 39 Z" style="fill: var(--color-fg-muted)"/>
+<path d="M731.0 30 L741.0 30 L736.0 39 Z" style="fill: var(--color-fg-muted)"/>
+<text x="400.0" y="24" text-anchor="middle" class="b" >t</text>
+<rect x="170" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="184" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="198" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="212" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="226" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="240" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="254" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="268" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="282" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="296" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="310" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="324" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="338" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="352" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="366" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="380" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="394" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="408" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="422" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="436" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="450" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="464" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="478" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="492" y="64" width="12" height="20" rx="2" style="fill: var(--rc-c0); stroke: var(--rc-c0)"/>
+<rect x="506" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="520" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="534" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="548" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="562" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="576" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="590" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="604" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="618" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="632" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="646" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="660" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="674" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="688" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="702" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="716" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="730" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="744" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="758" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="772" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="786" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="800" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+<rect x="814" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-dasharray="3 2"/>
+<rect x="828" y="64" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-opacity=".45" stroke-dasharray="3 2"/>
+<path d="M394 92 v6 H504 v-6" fill="none" style="stroke: var(--rc-c0)" stroke-width="1.5"/>
+<text x="449.0" y="114" text-anchor="middle" class="b" >chunk a_t … a_t+7  (8 × 7 = 56)</text>
+<text x="850" y="78" text-anchor="start" class="m" >zeros past the end</text>
+<circle cx="400.0" cy="134" r="6" style="fill: var(--rc-c0)"/>
+<text x="412.0" y="138" text-anchor="start" class="b" >s_t  (23)</text>
+<line x1="170" y1="166" x2="814" y2="166" stroke="currentColor" stroke-opacity=".6"/>
+<rect x="170" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="184" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="198" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="212" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="226" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="240" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="254" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="268" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="282" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="296" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="310" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="324" y="166" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="338" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="352" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="366" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="380" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="394" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="408" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="422" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="436" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="450" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="464" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="478" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="492" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="506" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="520" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="534" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="548" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="562" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="576" y="166" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="590" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="604" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="618" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="632" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="646" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="660" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="674" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="688" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="702" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="716" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="730" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="744" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="758" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="772" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="786" y="166" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<line x1="337" y1="156" x2="337" y2="166" stroke="currentColor" stroke-opacity=".6"/>
+<text x="338" y="152" text-anchor="middle" class="m" >subtask 1</text>
+<line x1="589" y1="156" x2="589" y2="166" stroke="currentColor" stroke-opacity=".6"/>
+<text x="590" y="152" text-anchor="middle" class="m" >subtask 2</text>
+<line x1="799" y1="156" x2="799" y2="166" stroke="currentColor" stroke-opacity=".6"/>
+<text x="802" y="152" text-anchor="start" class="m" >success, r = 0</text>
+<text x="254.0" y="218" text-anchor="middle" class="m" >−1</text>
+<text x="464.0" y="218" text-anchor="middle" class="m" >−⅔</text>
+<text x="695.0" y="218" text-anchor="middle" class="m" >−⅓</text>
+<path d="M394 228 v6 H812 v-6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+<text x="603.0" y="252" text-anchor="middle" class="b" >G_t = Σ 0.99^(k−t) r_k, from t to the end of the episode</text>
+<rect x="170" y="300" width="200" height="64" rx="8" fill="none" style="stroke: var(--rc-c0)" stroke-width="2"/>
+<text x="270.0" y="327" text-anchor="middle" class="b" >Input, 79 dims</text>
+<text x="270.0" y="347" text-anchor="middle" class="m" >s_t (23) + chunk (56)</text>
+<rect x="410" y="300" width="180" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+<text x="500.0" y="327" text-anchor="middle" class="b" >10 MLPs</text>
+<text x="500.0" y="347" text-anchor="middle" class="m" >4 × 512, LayerNorm</text>
+<rect x="630" y="300" width="140" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+<text x="700.0" y="327" text-anchor="middle" class="b" >Q_1 … Q_10</text>
+<text x="700.0" y="347" text-anchor="middle" class="m" >one value each</text>
+<rect x="810" y="300" width="160" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+<text x="890.0" y="327" text-anchor="middle" class="b" >Loss</text>
+<text x="890.0" y="347" text-anchor="middle" class="m" >average of (Q_m − G_t)²</text>
+<line x1="370" y1="332.0" x2="408" y2="332.0" stroke="currentColor" stroke-width="1.5" marker-end="url(#rcf-arrow)"/>
+<line x1="590" y1="332.0" x2="628" y2="332.0" stroke="currentColor" stroke-width="1.5" marker-end="url(#rcf-arrow)"/>
+<line x1="770" y1="332.0" x2="808" y2="332.0" stroke="currentColor" stroke-width="1.5" marker-end="url(#rcf-arrow)"/>
+<path d="M812 236 C 812 270, 890 266, 890 298" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#rcf-arrow)"/>
+<text x="898" y="282" text-anchor="start" class="m" >target</text>
+<line x1="20" y1="402" x2="960" y2="402" stroke="currentColor" stroke-opacity=".15"/>
+<text x="158" y="448" text-anchor="end" class="" >reward r_k</text>
+<text x="158" y="464" text-anchor="end" class="m" >if it stalls instead</text>
+<line x1="170" y1="442" x2="842" y2="442" stroke="currentColor" stroke-opacity=".6"/>
+<rect x="170" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="184" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="198" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="212" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="226" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="240" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="254" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="268" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="282" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="296" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="310" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="324" y="442" width="12" height="36.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="338" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="352" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="366" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="380" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="394" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="408" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="422" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="436" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="450" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="464" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="478" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="492" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="506" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="520" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="534" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="548" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="562" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="576" y="442" width="12" height="24.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="590" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="604" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="618" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="632" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="646" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="660" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="674" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="688" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="702" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="716" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="730" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="744" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="758" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="772" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="786" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="800" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="814" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<rect x="828" y="442" width="12" height="12.0" rx="1.5" fill="currentColor" fill-opacity=".28"/>
+<line x1="589" y1="432" x2="589" y2="442" stroke="currentColor" stroke-opacity=".6"/>
+<text x="590" y="428" text-anchor="middle" class="m" >subtask 2</text>
+<text x="850" y="452" text-anchor="start" class="m" >… −⅓ every step to step 400</text>
+<path d="M394 494 v6 H1012 v-6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="703.0" y="518" text-anchor="middle" class="m" >G_t sums −⅓ per step up to the 400-step cap, with no bootstrap</text>
+</svg>
+          <figcaption class="sq-sub">One row per decision point (every 8 steps, <code>chunk_pos == 0</code>) in train episodes 0 to 287 of all 30 policies, pooled. The input (blue) is the state at <code>t</code> and the 8 actions that actually ran after it. The target <code>G_t</code> is the discounted sum of the logged rewards from <code>t</code> to the end of the episode. The reward is the subtask penalty: −1, −⅔ or −⅓ per step with 0, 1 or 2 of the 3 subtasks done, and 0 on the success step. If the episode stalls with 2 subtasks done, the input at <code>t</code> can look the same while <code>G_t</code> keeps adding −⅓ per step until the 400-step cap; the critic is not told how close the cap is. Step counts in the drawing are schematic.</figcaption>
+        </figure>
+      </div>
+      <div class="sq-card">
+        <div class="bd">
+          <div class="bd-lane" id="rc-bd-net">
+            <h4>One training sample</h4>
+            <div class="bd-flow">
+              <div class="bd-stack">
+                <div class="bd-node"><b>Obs <code>s_t</code></b>23 dims, at a decision point.</div>
+                <div class="bd-node"><b>Chunk <code>a_t … a_t+7</code></b>The 8 executed actions, flattened to 56 dims. Zeros past the episode end.</div>
+              </div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>10 MLPs</b>Each 4 hidden layers of 512 with LayerNorm. Same input, separate weights.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-node"><b>10 values</b><code>Q_1 … Q_10</code>, one scalar each.</div>
+              <div class="bd-arr" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="bd-stack">
+                <div class="bd-node"><b>Training</b>Every member regresses on <code>G_t</code>. Loss is the squared error averaged over members and batch.</div>
+                <div class="bd-node"><b>Scoring</b>The ensemble mean is the critic's value.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sq-card" id="rc-pseudo">
+        <h3>Training loop, in plain English</h3>
+        <ol class="rc-list rc-steps">
+          <li><b>Collect rollouts.</b> Run each of the 30 frozen policies for 400 episodes with the SDE sampler and save every step as (s, a, r, s′, terminated, truncated, episode id, timestep, <code>chunk_pos</code>). Call this D.</li>
+          <li><b>Compute returns.</b> In each episode, walk back from the last step: G = r at the last step, then G<sub>t</sub> = r<sub>t</sub> + 0.99 · G<sub>t+1</sub>. The last step is the end whether the episode succeeded or hit the 400-step cap. Nothing is added past it.</li>
+          <li><b>Build rows.</b> Keep the decision points (<code>chunk_pos = 0</code>). Each row gets input x = (s<sub>t</sub>, a<sub>t</sub> … a<sub>t+7</sub>), 79 numbers with zeros for actions past the episode end, and target y = G<sub>t</sub>.</li>
+          <li><b>Split by episode.</b> Episodes 0 to 287 train, 288 to 319 validate, 320 to 399 test.</li>
+          <li><b>Initialise Q.</b> 10 MLPs with random weights (critic seed 0, 1 or 2) and one AdamW optimizer, learning rate 3e-4.</li>
+          <li><b>Repeat 200,000 times:</b>
+            <ol type="a">
+              <li>Sample 256 training rows at random.</li>
+              <li>Each MLP m predicts Q<sub>m</sub>(x).</li>
+              <li>Loss = mean over the 10 MLPs and 256 rows of (Q<sub>m</sub>(x) − y)². The target y is the logged return and never comes from Q.</li>
+              <li>Clip the gradient norm at 1000 and take one AdamW step.</li>
+              <li>Every 5,000 steps, compute validation MSE with the ensemble mean. If it is the lowest so far, save the weights.</li>
+            </ol>
+          </li>
+          <li><b>Report.</b> Load the saved weights. Q(x) is the mean of the 10 MLPs. Compute the test metrics on episodes 320 to 399.</li>
+        </ol>
+        <p class="rc-eq">A SARSA / TD version changes only step 6c: y = r<sub>t</sub> + 0.99 r<sub>t+1</sub> + … + 0.99<sup>7</sup> r<sub>t+7</sub> + 0.99<sup>8</sup> · Q̄(s<sub>t+8</sub>, a<sub>t+8</sub> … a<sub>t+15</sub>), with Q̄ a slowly updated copy of Q and the last term dropped when the episode has ended. Step 2 is then not needed.</p>
+      </div>
+
+      <div class="sq-card" id="rc-why-mc">
+        <h3>Why Monte Carlo, not bootstrapping</h3>
+        <ul class="rc-list">
+          <li>The experiment spec starts with Monte Carlo return regression, L = E[(Q(s, a) − G<sub>t</sub>)²].</li>
+          <li>Every episode in D runs to its end (success or the 400-step cap) under one fixed policy, so G<sub>t</sub> is an unbiased sample of that policy's Q. Bootstrapping is not needed to get a target.</li>
+          <li>The target never depends on Q, so there is no target network and Q's errors do not feed back into its own targets.</li>
+          <li>The cost is variance: each row has one sampled future. The 400-step cap also counts as a real ending, which is where the bands in the Q against MC plot come from.</li>
+          <li>SARSA / TD on the logged next chunk is the next variant to try. The rollouts already hold everything it needs.</li>
+        </ul>
+      </div>
+
+      <div class="sq-card rc-split" id="rc-split" aria-label="Episode split: 0 to 287 train, 288 to 319 validation, 320 to 399 test, the same for every policy">
+        <h3>Episode split</h3>
+        <div class="rc-bar" aria-hidden="true"><span class="tr"></span><span class="va"></span><span class="te"></span></div>
+        <div class="sq-legend">
+          <span><i style="background: var(--rc-c0)"></i>Train: episodes 0 to 287</span>
+          <span><i style="background: var(--color-fg-muted)"></i>Val: 288 to 319, picks the checkpoint</span>
+          <span><i style="background: var(--rc-c1)"></i>Test: 320 to 399, reported</span>
+        </div>
+        <p class="sq-sub">Episode <code>e</code> starts from the same scene for every policy, so no test scene appears in training under any policy.</p>
+      </div>
+
+      <div class="sq-grid">
+        <div class="sq-card">
+          <h3>Samples</h3>
+          <ul class="rc-list">
+            <li>Only decision points, where best-of-N would score candidate chunks. <code>--points all</code> uses every step instead.</li>
+            <li>The action input is the chunk as the policy ran it, the same 56-dim shape the qipm critic takes.</li>
+            <li>All 30 policies are pooled, from 10-demo policies that mostly fail to 200-demo ones that mostly succeed.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Target</h3>
+          <p class="rc-eq"><code>G_t = r_t + γ r_t+1 + γ² r_t+2 + …</code> to the episode end, with γ = 0.99.</p>
+          <ul class="rc-list">
+            <li>The logged reward is a subtask penalty: −1, −⅔ or −⅓ per step with 0, 1 or 2 of the 3 subtasks done, and 0 on the success step. <code>G_t</code> is the discounted sum of these to the episode end.</li>
+            <li>It ranges from 0 at the success step to about −98 for a full 400-step failure.</li>
+            <li>No bootstrap at the 400-step cap: a timeout counts as the end.</li>
+            <li>No TD term and no target network. It is plain regression on the return.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Optimizer and schedule</h3>
+          <ul class="rc-list">
+            <li>Gradient norm clipped at 1000, then AdamW: lr 3e-4, weight decay 1e-5, eps 1e-8, no schedule.</li>
+            <li>Batch 256, drawn with replacement from the train rows. 200k steps on one L40S.</li>
+            <li>Val and test MSE every 5k steps. The lowest val MSE is saved.</li>
+            <li>Train loss keeps falling to 200k while val MSE bottoms out much earlier, so the saved checkpoint, not the step budget, decides the critic.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Test metrics</h3>
+          <ul class="rc-list">
+            <li>Reported per group (ph or mh × demo count, the 3 policy seeds pooled), per demo count, and overall.</li>
+            <li>MSE against <code>G_t</code>, next to <code>var_G</code>, the MSE of always guessing the group mean. R² = 1 − MSE / var_G.</li>
+            <li>Bias: mean of Q − G.</li>
+            <li>Calibration: 10 quantile bins of Q. ECE is the count-weighted gap between mean Q and mean G per bin. Slope and intercept of G on Q should be 1 and 0.</li>
+            <li>Success AUC: how well Q at each episode's first decision predicts whether the episode succeeds.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Outputs</h3>
+          <ul class="rc-list">
+            <li><code>critics/mc_decision_seed{0,1,2}/</code>: <code>critic_best.pkl</code>, <code>metrics.json</code>, <code>test_predictions.npz</code>.</li>
+            <li><code>plot_q_vs_mc.py</code> draws Q against G per group from the test predictions, with a calibration line.</li>
+            <li>Curves are in W&amp;B, project <code>memory-critic</code>, group <code>critic_mc_nomem</code>.</li>
+          </ul>
+        </div>
+        <div class="sq-card">
+          <h3>Use in best-of-N</h3>
+          <ul class="rc-list">
+            <li><code>make_bon_actor</code> draws N SDE chunks per env, clips them, scores each with the ensemble mean and runs the top one.</li>
+            <li>OGPO's own BoN scores with the lower of 2 random members instead.</li>
+            <li><code>bon_eval.sbatch</code> runs N = 1, 4, 8, 16, 32 on all 30 policies with the seed-0 critic, 128 episodes each.</li>
+            <li>Those episodes start from new seeds (20,000,000 + <code>e</code>), shared by every N, so N = 1 is a paired baseline. Submitted 27 Oct.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="sq-section" id="rc-changes">
+      <h2 class="sq-h2">Where this differs from the plan</h2>
+      <div class="sq-card">
+        <ul class="rc-list">
+          <li>The policies are the 30 flow-BC checkpoints, not the OGPO finals.</li>
+          <li>Chunks are 8 actions (the flow-BC horizon), not 4.</li>
+          <li>The target is pure Monte Carlo. <code>bc_q_update</code> and its TD term are not used.</li>
+          <li>Data is 400 episodes from 8 envs per policy, not about 1000 from 32.</li>
+          <li>The held-out set is fixed episode indices (val 288 to 319, test 320 to 399), not a random tenth.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+dash.calc('finals', {
+  title: 'Final eval per method',
+  description: 'Last eval of each curve: BC at 500k steps with 200 demos, OGPO at 2M online steps.',
+  inputs: ['flow_bc', 'ogpo_bc', 'ogpo_rl'],
+  fn: (flow_bc, ogpo_bc, ogpo_rl) => {
+    const last = (rows, dt, mode) => {
+      const r = rows.filter((d) => d.dt === dt && d.mode === mode && (d.demos === undefined || d.demos === 200));
+      return r.reduce((a, b) => (b.step > a.step ? b : a)).mean;
+    };
+    const out = [];
+    const add = (key, method, rows, dt, demos) => out.push({
+      key, method, dataset: 'square-' + dt, demos,
+      ode: Math.round(last(rows, dt, 'ode') * 10) / 10,
+      sde: Math.round(last(rows, dt, 'sde') * 10) / 10,
+    });
+    for (const dt of ['ph', 'mh']) add('flow-' + dt, 'Flow BC (this repo)', flow_bc, dt, '200');
+    for (const dt of ['ph', 'mh']) add('ogbc-' + dt, 'OGPO repo, BC only', ogpo_bc, dt, '200');
+    add('rl-ph', 'OGPO with critics', ogpo_rl, 'ph', '200 (full)');
+    add('rl-mh', 'OGPO with critics', ogpo_rl, 'mh', '300 (full)');
+    return out;
+  },
+});
+</script>
+
+<script>
+(() => {
+  const DEMOS = [10, 20, 50, 100, 200];
+  const pct = (v) => d3.format('.1f')(v) + '%';
+  const stepFmt = (v) => (v === 0 ? '0' : d3.format('~s')(v));
+  const mode = () => (dash.params().mode === 'ode' ? 'ode' : 'sde');
+
+  document.querySelectorAll('.sq-seg button').forEach((b) => {
+    b.addEventListener('click', () => dash.setParams({ mode: b.dataset.mode }));
+  });
+
+  function legend(card, items) {
+    const box = card.querySelector('.sq-legend');
+    box.replaceChildren(...items.map((it) => {
+      const s = document.createElement('span');
+      const sw = document.createElement('i');
+      sw.className = it.kind === 'paper' ? 'sq-dia' : it.kind === 'band' ? 'sq-band' : 'sq-sw';
+      if (it.kind !== 'paper') sw.style.background = it.color;
+      s.append(sw, document.createTextNode(it.name));
+      return s;
+    }));
+  }
+
+  function failed(el) {
+    el.classList.remove('dash-skeleton');
+    el.replaceChildren();
+    const f = document.createElement('div');
+    f.className = 'sq-fail';
+    f.textContent = 'Failed to load';
+    el.append(f);
+  }
+
+  // series: [{name, color, pts: [{x, mean, lo, hi}]}]; opts: {xMax, xLabel, band, refs}
+  function draw(el, series, opts) {
+    el.classList.remove('dash-skeleton');
+    el.replaceChildren();
+    const W = Math.max(280, el.clientWidth);
+    const H = 260;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const probe = svg.append('text').attr('font-size', 11).text('100%');
+    const yLabW = probe.node().getComputedTextLength();
+    probe.remove();
+    const m = { top: 8, right: 14, bottom: 38, left: Math.ceil(yLabW) + 10 };
+    const iw = W - m.left - m.right, ih = H - m.top - m.bottom;
+    const x = d3.scaleLinear([0, opts.xMax], [0, iw]);
+    const y = d3.scaleLinear([0, 100], [ih, 0]);
+    const g = svg.append('g').attr('transform', `translate(${m.left},${m.top})`);
+
+    g.append('g').selectAll('line').data(y.ticks(5)).join('line')
+      .attr('x1', 0).attr('x2', iw).attr('y1', y).attr('y2', y)
+      .style('stroke', 'var(--cds-chart-grid)').attr('stroke-width', 1);
+    const ya = g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(0).tickPadding(8).tickFormat((v) => v + '%'));
+    ya.attr('font-size', null).attr('font-family', null).select('.domain').remove();
+    const xa = g.append('g').attr('transform', `translate(0,${ih})`)
+      .call(d3.axisBottom(x).ticks(Math.max(2, Math.min(5, Math.floor(iw / 70)))).tickSizeOuter(0).tickFormat(stepFmt));
+    xa.attr('font-size', null).attr('font-family', null);
+    xa.select('.domain').style('stroke', 'var(--cds-chart-axis)');
+    xa.selectAll('.tick line').style('stroke', 'var(--cds-chart-axis)');
+    svg.selectAll('.tick text').style('fill', 'var(--color-fg-muted)').attr('font-size', 11);
+    g.append('text').attr('x', iw).attr('y', ih + 32).attr('text-anchor', 'end').attr('font-size', 11)
+      .style('fill', 'var(--color-fg-muted)').text(opts.xLabel);
+
+    if (opts.band) {
+      for (const s of series) {
+        g.append('path').datum(s.pts)
+          .attr('d', d3.area().x((d) => x(d.x)).y0((d) => y(d.lo)).y1((d) => y(d.hi)))
+          .style('fill', s.color).style('fill-opacity', 0.16).style('stroke', 'none');
+      }
+    }
+    for (const s of series) {
+      g.append('path').datum(s.pts)
+        .attr('d', d3.line().x((d) => x(d.x)).y((d) => y(d.mean)))
+        .style('fill', 'none').style('stroke', s.color).attr('stroke-width', 2)
+        .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round');
+    }
+    for (const r of opts.refs || []) {
+      g.append('rect').attr('x', x(r.x) - 4).attr('y', y(r.y) - 4).attr('width', 8).attr('height', 8)
+        .attr('transform', `rotate(45 ${x(r.x)} ${y(r.y)})`)
+        .style('fill', 'var(--color-panel)').style('stroke', 'var(--color-fg)').attr('stroke-width', 1.5);
+    }
+
+    const rule = g.append('line').attr('y1', 0).attr('y2', ih).style('stroke', 'var(--cds-chart-reference)').attr('stroke-width', 1).style('opacity', 0);
+    const dots = g.append('g').style('opacity', 0);
+    const tip = document.createElement('div');
+    tip.className = 'sq-tip';
+    tip.hidden = true;
+    el.append(tip);
+    const xs = series[0].pts.map((d) => d.x);
+    const bis = d3.bisector((d) => d).center;
+
+    const hit = g.append('rect').attr('width', iw).attr('height', ih).style('fill', 'transparent');
+    hit.on('pointermove', (ev) => {
+      const [mx] = d3.pointer(ev);
+      const xv = xs[bis(xs, x.invert(mx))];
+      rule.attr('x1', x(xv)).attr('x2', x(xv)).style('opacity', 1);
+      const rows = series.map((s) => ({ s, d: s.pts.find((p) => p.x === xv) })).filter((r) => r.d);
+      dots.style('opacity', 1).selectAll('circle').data(rows).join('circle')
+        .attr('cx', (r) => x(r.d.x)).attr('cy', (r) => y(r.d.mean)).attr('r', 4)
+        .style('fill', (r) => r.s.color).style('stroke', 'var(--color-panel)').attr('stroke-width', 2);
+      const ref = (opts.refs || []).find((r) => r.x === xv);
+      tip.replaceChildren();
+      const t = document.createElement('div');
+      t.className = 't';
+      t.textContent = opts.tipTitle(xv);
+      tip.append(t);
+      for (const r of rows.slice().reverse()) {
+        const line = document.createElement('div');
+        line.className = 'r';
+        const sw = document.createElement('i');
+        sw.className = 'sq-sw';
+        sw.style.background = r.s.color;
+        const em = document.createElement('em');
+        em.textContent = `(${d3.format('.0f')(r.d.lo)}–${d3.format('.0f')(r.d.hi)})`;
+        line.append(sw, document.createTextNode(`${r.s.name} ${pct(r.d.mean)} `), em);
+        tip.append(line);
+      }
+      if (ref) {
+        const line = document.createElement('div');
+        line.className = 'r';
+        line.textContent = `Paper Fig. 9: ${ref.y}%`;
+        tip.append(line);
+      }
+      tip.hidden = false;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      let left = m.left + x(xv) + 12;
+      if (left + tw > W) left = m.left + x(xv) - tw - 12;
+      tip.style.left = Math.max(0, left) + 'px';
+      tip.style.top = Math.max(0, m.top + Math.min(ih - th, 10)) + 'px';
+    });
+    hit.on('pointerleave', () => { rule.style('opacity', 0); dots.style('opacity', 0); tip.hidden = true; });
+  }
+
+  function bcChart(id, rows, dt) {
+    const el = document.getElementById(id);
+    const card = el.closest('.sq-card');
+    const md = mode();
+    const series = DEMOS.map((n, i) => ({
+      name: n + ' demos',
+      color: dash.colors[i],
+      pts: rows.filter((d) => d.dt === dt && d.mode === md && d.demos === n)
+        .sort((a, b) => a.step - b.step).map((d) => ({ x: d.step, mean: d.mean, lo: d.lo, hi: d.hi })),
+    })).filter((s) => s.pts.length);
+    legend(card, series.map((s) => ({ name: s.name, color: s.color })));
+    draw(el, series, { xMax: 500000, xLabel: 'BC steps', band: false, tipTitle: (v) => `${d3.format(',')(v)} BC steps · min–max over seeds in ()` });
+  }
+
+  function rlChart(id, rows, dt, paper) {
+    const el = document.getElementById(id);
+    const card = el.closest('.sq-card');
+    const md = mode();
+    const s = {
+      name: 'OGPO with critics',
+      color: dash.colors[0],
+      pts: rows.filter((d) => d.dt === dt && d.mode === md).sort((a, b) => a.step - b.step)
+        .map((d) => ({ x: d.step, mean: d.mean, lo: d.lo, hi: d.hi })),
+    };
+    const refs = (paper || []).map((p) => ({ x: p.step, y: p.success }));
+    const items = [{ name: 'Mean of 3 seeds', color: s.color }, { name: 'Min–max', color: s.color, kind: 'band' }];
+    if (refs.length) items.push({ name: 'Paper Fig. 9 (read off the figure)', kind: 'paper' });
+    legend(card, items);
+    draw(el, [s], { xMax: 2000000, xLabel: 'online env steps', band: true, refs,
+      tipTitle: (v) => (v === 0 ? 'BC hand-off' : `${d3.format(',')(v)} online steps`) });
+  }
+
+  const pages = { results: document.getElementById('results'), plan: document.getElementById('plan'), rollouts: document.getElementById('rollouts') };
+  const root = document.querySelector('.sq');
+  root.style.setProperty('--bd-accent', dash.colors[0]);
+  root.style.setProperty('--rc-c0', dash.colors[0]);
+  root.style.setProperty('--rc-c1', dash.colors[1]);
+
+  function show(name, link) {
+    for (const [k, el] of Object.entries(pages)) el.hidden = k !== name;
+    document.querySelectorAll('.sq-tabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.page === name)));
+    if (link) dash.setLink(name);
+    render();
+  }
+  document.querySelectorAll('.sq-tabs button').forEach((b) => b.addEventListener('click', () => show(b.dataset.page, true)));
+
+  function render() {
+    const fin0 = dash.data('finals');
+    document.querySelectorAll('.pl-v').forEach((elv) => {
+      const key = elv.getAttribute('data-where').slice(4);
+      const r = fin0.status === 'ok' ? fin0.data.find((d) => d.key === key) : null;
+      elv.textContent = r ? r[elv.getAttribute('data-field')] + '%' : '—';
+    });
+    if (pages.results.hidden) return;
+    const md = mode();
+    document.querySelectorAll('.sq-seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === md)));
+    document.getElementById('mode-word').textContent = md.toUpperCase();
+
+    const fin = dash.data('finals');
+    document.querySelectorAll('.sq-v').forEach((elv) => {
+      elv.setAttribute('data-field', md);
+      const key = elv.getAttribute('data-where').slice(4);
+      const r = fin.status === 'ok' ? fin.data.find((d) => d.key === key) : null;
+      elv.textContent = r ? r[md] + '%' : '—';
+    });
+    const tbody = document.querySelector('#finals-table tbody');
+    tbody.replaceChildren(...(fin.status === 'ok' ? fin.data : []).map((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = r.key;
+      for (const f of ['method', 'dataset', 'demos', 'ode', 'sde']) {
+        const td = document.createElement('td');
+        const isNum = f === 'ode' || f === 'sde';
+        td.textContent = isNum ? r[f].toFixed(1) + '%' : r[f];
+        if (isNum) td.className = 'num' + (f === md ? ' sel' : '');
+        tr.append(td);
+      }
+      return tr;
+    }));
+
+    for (const [src, pre] of [['flow_bc', 'flow'], ['ogpo_bc', 'ogbc']]) {
+      const d = dash.data(src);
+      for (const dt of ['ph', 'mh']) {
+        const el = document.getElementById(`chart-${pre}-${dt}`);
+        if (d.status === 'ok') bcChart(el.id, d.data, dt);
+        else if (d.status === 'error') failed(el);
+        else { el.replaceChildren(); el.classList.add('dash-skeleton'); }
+      }
+    }
+    const rl = dash.data('ogpo_rl');
+    const paper = dash.data('paper_mh');
+    for (const dt of ['ph', 'mh']) {
+      const el = document.getElementById(`chart-rl-${dt}`);
+      if (rl.status === 'ok') rlChart(el.id, rl.data, dt, dt === 'mh' && paper.status === 'ok' ? paper.data : []);
+      else if (rl.status === 'error') failed(el);
+      else { el.replaceChildren(); el.classList.add('dash-skeleton'); }
+    }
+  }
+
+  dash.onData(render);
+
+  const named = location.hash.slice(1);
+  const target = named && document.getElementById(named);
+  const home = target && Object.keys(pages).find((k) => k !== 'results' && (pages[k] === target || pages[k].contains(target)));
+  if (home) {
+    show(home, false);
+    target.scrollIntoView();
+  }
+})();
+</script>

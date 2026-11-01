@@ -1,0 +1,88 @@
+\documentclass[a4paper, 11pt]{article}
+\pdfoutput=1  
+\usepackage{etoolbox,verbatim}
+
+%% for arxiv formatting. toggle false for any conference submission
+\newtoggle{arxiv}
+\toggletrue{arxiv} 
+
+%% adds custom formatting of theorems, such as colored headers. 
+\newtoggle{customthms}
+\toggletrue{customthms} 
+
+%% unique to the COLT conference. false by default
+\newtoggle{colt}
+\togglefalse{colt} 
+
+%all the include files
+\input{preamble/_preamble_includes}
+
+
+
+\fancyhead[C]{\small Running Title}
+
+\title{Memory Critics for cross-episode generalization}
+
+\author{
+  % examples of more authors
+  %\footnote{\texttt{ablock@mit.edu}. Author order is alphabetical. Please send correspondence to all authors.}\\
+  %Department of Mathematics\\
+  % examples of more authors
+  \small Authors\\
+  \vspace{-.3em}
+ \rule{.38\textwidth}{.7pt}\\
+   \footnotesize Attributions
+}
+\papercode{https://github.com/cpranavvignesh/ogpo-vla-finetuning.git}
+\paperdate{\today}
+
+\date{\vspace{-.5em}}
+\thispagestyle{empty}
+ 
+\begin{document}
+
+
+\begin{tcolorbox}[
+colback=blue!60!gray!5, colframe=gray!50, 
+boxrule=0pt, 
+    arc=2mm%title=\bfseries Document Information
+]
+\maketitle
+\tcbline
+\input{body/intro_fig}
+% Metadata section (after abstract, inside tcolorbox)
+  \vskip 0.5cm
+  \makeatletter
+  \tcbline \ifdefempty{\metadatalist}{}{\metadatalist\par}
+  \makeatother
+  
+\end{tcolorbox}
+\begin{abstract}\input{body/abstract}
+\end{abstract}
+
+
+
+\tableofcontents
+\newpage 
+
+
+
+\section{Week 1}
+\input{body/week1}
+\section{Writing Best Practices}
+\input{body/writing_best_practices}
+
+
+
+\newpage
+\newpage
+\bibliographystyle{plainnat}
+\bibliography{refs}
+\newpage 
+
+\newpage
+\appendix
+
+
+
+\end{document}

@@ -1,0 +1,20 @@
+== square_ph_ogpo_public_10demos: 3 W&B runs
+   seed 0: gkk1mtqo state=finished evals=299 last_step=2500000 hand-off=500000 ok logs=['ogpo_public_square_ph_10demos_seed0_10912622.out'] (other runs: [])
+   seed 7: s630ylgr state=finished evals=300 last_step=2500000 hand-off=500000 ok logs=['ogpo_public_square_ph_10demos_seed7_10912623.out'] (other runs: [])
+   seed 42: 7fc0h3km state=running evals=248 last_step=2000000 hand-off=500000  logs=['ogpo_public_square_ph_10demos_seed42_10912624.out'] (other runs: [])
+== square_ph_ogpo_public_20demos: 3 W&B runs
+   seed 0: rfhft6oj state=running evals=284 last_step=2340000 hand-off=500000  logs=['ogpo_public_square_ph_20demos_seed0_10912625.out'] (other runs: [])
+   seed 7: d6vqjznu state=finished evals=300 last_step=2500000 hand-off=500000 ok logs=['ogpo_public_square_ph_20demos_seed7_10912626.out'] (other runs: [])
+   seed 42: g1f0vcrm state=finished evals=300 last_step=2500000 hand-off=500000 ok logs=['ogpo_public_square_ph_20demos_seed42_10912627.out', 'ogpo_public_square_ph_20demos_seed42_10929377.out'] (other runs: [])
+== square_ph_ogpo_public_50demos: 3 W&B runs
+   seed 0: 6prwon34 state=finished evals=206 last_step=2030000 hand-off=30000 ok logs=['ogpo_public_square_ph_50demos_seed0_10912628.out'] (other runs: [])
+   seed 7: evpiqqgk state=finished evals=206 last_step=2030000 hand-off=30000 ok logs=['ogpo_public_square_ph_50demos_seed7_10912629.out'] (other runs: [])
+   seed 42: fvlgqzi8 state=finished evals=206 last_step=2030000 hand-off=30000 ok logs=['ogpo_public_square_ph_50demos_seed42_10912630.out'] (other runs: [])
+== square_ph_ogpo_public_100demos: 3 W&B runs
+   seed 0: s1cgvb7v state=finished evals=206 last_step=2030000 hand-off=30000 ok logs=['ogpo_public_square_ph_100demos_seed0_10912631.out'] (other runs: [])
+   seed 7: lmoulpjn state=finished evals=206 last_step=2030000 hand-off=30000 ok logs=['ogpo_public_square_ph_100demos_seed7_10912632.out'] (other runs: [])
+   seed 42: tl3h0cp3 state=running evals=187 last_step=1845000 hand-off=35000  logs=['ogpo_public_square_ph_100demos_seed42_10912633.out'] (other runs: [])
+== square_ph_ogpo_public: 3 W&B runs
+   seed 0: h2017g0w state=finished evals=206 last_step=2035000 hand-off=35000 ok logs=['ogpo_public_square_ph_seed0_10897633.out'] (other runs: [])
+   seed 7: q8gq63me state=finished evals=206 last_step=2035000 hand-off=35000 ok logs=['ogpo_public_square_ph_seed7_10897634.out'] (other runs: [])
+   seed 42: 5bz7k7ar state=finished evals=207 last_step=2035000 hand-off=35000 ok logs=['ogpo_public_square_ph_seed42_10897635.out'] (other runs: [])
