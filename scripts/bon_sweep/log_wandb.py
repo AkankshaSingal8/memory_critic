@@ -78,7 +78,7 @@ def main():
             print(f"[wandb] could not check existing runs ({type(exc).__name__}: {exc})")
 
     run = wandb.init(entity=entity, project=project, group=group, name=name, id=run_id,
-                     job_type="bon_curve", dir=os.environ.get("TMPDIR"),
+                     job_type="bon_curve",
                      config={"dataset": ds, "n_demos": n_demos, "bc_seed": bc_seed,
                              "critic_seed": args.critic_seed, "ns": args.ns, "steps": args.steps,
                              "episodes": args.episodes, "critic": args.critic, "run_dir": args.run_dir,

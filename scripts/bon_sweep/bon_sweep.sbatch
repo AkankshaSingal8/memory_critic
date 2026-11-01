@@ -17,6 +17,7 @@
 #   i = ((d * n_sizes + s) * n_bc_seeds + b) * n_critic_seeds + c
 
 set -uo pipefail
+(( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1) )) || { echo "needs bash 5.1+ (wait -n -p)"; exit 2; }
 : "${REPO:?submit with scripts/bon_sweep/submit.sh}"
 source "$REPO/scripts/bon_sweep/config.sh"
 echo "Job started on: $(hostname)  Job ID: ${SLURM_ARRAY_JOB_ID:-${SLURM_JOB_ID:-local}}_${SLURM_ARRAY_TASK_ID:-}  Restart count: ${SLURM_RESTART_COUNT:-0}"
@@ -54,6 +55,8 @@ mkdir -p "$TMPDIR" "$OUT_DIR" 2>/dev/null || { export TMPDIR=/tmp/bon_sweep_${SL
 export MUJOCO_GL=egl PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 # Several processes share one GPU: allocate on demand instead of 75% each.
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
+# W&B files on shared storage (TMPDIR is node-local and removed at the end), so offline runs can be synced later.
+export WANDB_DIR="$LOG_DIR/wandb"; mkdir -p "$WANDB_DIR"
 [ -n "${JAX_PLATFORMS:-}" ] && export JAX_PLATFORMS
 DROP=(--drop_transitions); [ "$KEEP_TRANSITIONS" = 1 ] && DROP=()
 

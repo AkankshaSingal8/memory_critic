@@ -36,7 +36,7 @@ SCRATCH_ROOT=${SCRATCH_ROOT:-/scratch/$USER}
 WANDB_ENTITY=${WANDB_ENTITY:-akankshasingal08}
 WANDB_PROJECT=${WANDB_PROJECT:-memory-critic}
 WANDB_GROUP=${WANDB_GROUP:-bon_curve_mc_critic}
-WANDB_MODE=${WANDB_MODE:-online}          # offline: sync later with `wandb sync <dir>`
+WANDB_MODE=${WANDB_MODE:-online}          # offline: sync later with `wandb sync $LOG_DIR/wandb/wandb/offline-run-*`
 
 # --- Slurm. Babel general needs a GPU and the normal QOS; for preempt use
 # PARTITION=preempt QOS=preempt_qos.
@@ -44,7 +44,7 @@ PARTITION=${PARTITION:-general}
 QOS=${QOS:-normal}
 GRES=${GRES:-gpu:1}
 PARALLEL=${PARALLEL:-3}                   # (T, N) rollouts at once in a task, sharing the GPU
-CPUS=${CPUS:-24}                          # about PARALLEL * (N_ENVS + 1)
+CPUS=${CPUS:-24}                          # about PARALLEL * (N_ENVS + 1); if sbatch refuses, try PARALLEL=2 CPUS=18
 MEM=${MEM:-64G}
 TIME=${TIME:-1-00:00:00}                  # general MaxTime is 2 days
 EXTRA_SBATCH=${EXTRA_SBATCH:-}            # e.g. "--exclude=babel-x-1 --mail-type=END"

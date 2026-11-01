@@ -35,6 +35,13 @@ srun -p maxlab-cpu -q maxlab_cpu_qos -c 2 --mem 4G -t 2:00:00 \
 # add TAR=1 in front to also write bon_sweep_inputs.tar for scp
 ```
 
+If `srun` waits too long for a maxlab-cpu node, queue it instead:
+
+```bash
+sbatch -p maxlab-cpu -q maxlab_cpu_qos -c 2 --mem 4G -t 2:00:00 -o logs/stage_inputs_%j.out \
+    --wrap "scripts/bon_sweep/stage_inputs.sh /data/user_data/asingal2/bon_sweep_inputs"
+```
+
 Then make that directory reachable from the account that will submit. Either:
 - give that account read access, e.g. `setfacl -R -m u:<their_user>:rX /data/user_data/asingal2/bon_sweep_inputs` plus `setfacl -m u:<their_user>:X /data/user_data/asingal2`, if ACLs work on that filesystem, or
 - copy it across: `scp bon_sweep_inputs.tar <host>:<dir>/`, then `tar -xf` it there.
@@ -65,7 +72,7 @@ CHECK=1 scripts/bon_sweep/submit.sh        # sbatch --test-only: is the request 
 scripts/bon_sweep/submit.sh                # submit all 60 tasks
 ```
 
-Defaults are Babel `general`: `--qos=normal --gres=gpu:1 -c 24 --mem 64G -t 1-00:00:00`, 3 rollouts at a time. Override any of them:
+Defaults are Babel `general`: `--qos=normal --gres=gpu:1 -c 24 --mem 64G -t 1-00:00:00`, 3 rollouts at a time. This request couldn't be tested from the asingal2 account, which has no `normal` QOS, so run `CHECK=1` on the submitting account first. If sbatch rejects 24 CPUs per GPU, use `PARALLEL=2 CPUS=18`. Override any of them:
 
 ```bash
 PARTITION=preempt QOS=preempt_qos scripts/bon_sweep/submit.sh           # Babel preempt instead
