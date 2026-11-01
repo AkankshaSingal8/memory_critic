@@ -91,6 +91,8 @@ def main():
             ax.set_xlabel("")
         part = "" if have[N] == total else f"  ({have[N]}/{total} points so far)"
         ax.set_title(f"Best-of-{N} vs BC alone{part}", color=INK, loc="left", fontsize=11)
+    for ax in axes.ravel()[len(args.ns):]:
+        ax.axis("off")
     size_h = [Line2D([], [], color=c, lw=2) for c in RAMP][::-1]
     size_l = [f"{n} demos" for n in SIZES][::-1]
     style_h = [Line2D([], [], color=INK2, lw=2, marker="o", ms=4), Line2D([], [], color=INK2, lw=1.4, ls=(0, (4, 2.5)))]

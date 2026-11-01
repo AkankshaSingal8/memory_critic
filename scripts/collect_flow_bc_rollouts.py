@@ -153,6 +153,10 @@ def main(argv=None):
     ap.add_argument("--rng_key", type=int, default=1000)
     ap.add_argument("--bon_n", type=int, default=1, help="best-of-n chunks per decision (1 = plain sampler)")
     ap.add_argument("--critic", default=None, help="critic_best.pkl from scripts/train_mc_critic.py (bon_n > 1)")
+    ap.add_argument("--dataset_root", default=None,
+                    help="override the run's ROBOMIMIC_DATASET_ROOT from flags.json (inputs copied to another machine)")
+    ap.add_argument("--drop_transitions", action="store_true",
+                    help="write only <policy_id>.json; delete the shards and skip the merged .npz")
     args = ap.parse_args(argv)
     assert args.bon_n == 1 or args.critic, "--bon_n > 1 needs --critic"
     assert args.episodes % args.n_envs == 0, "episodes must be a multiple of n_envs"
@@ -166,6 +170,8 @@ def main(argv=None):
     with open(os.path.join(run_dir, "flags.json")) as f:
         flags = json.load(f)
     ctrl, root, sidecar = apply_run_environment(flags)
+    if args.dataset_root:
+        root = os.environ["ROBOMIMIC_DATASET_ROOT"] = os.path.abspath(args.dataset_root)
     mp = flags["experiment"].get("matmul_precision")
     import jax
     if mp:
@@ -224,8 +230,9 @@ def main(argv=None):
     data = merge(shard_dir, n_batches)
     T = len(data["reward"])
     assert T == int(data["ep_length"].astype(np.int64).sum()), "transition count != sum of episode lengths"
-    _atomic_savez(os.path.join(args.out_dir, f"{args.policy_id}.npz"),
-                  policy_id=np.array(args.policy_id), **data)
+    if not args.drop_transitions:
+        _atomic_savez(os.path.join(args.out_dir, f"{args.policy_id}.npz"),
+                      policy_id=np.array(args.policy_id), **data)
     meta = {"policy_id": args.policy_id, "run_dir": run_dir, "checkpoint": ckpt,
             "checkpoint_step": ckpt_step, "sampler": args.sampler, "rng_key": args.rng_key,
             "seed_base": args.seed_base, "n_envs": args.n_envs, "episodes": args.episodes,
@@ -235,8 +242,13 @@ def main(argv=None):
             "horizon": flags["agent"].get("horizon_length"),
             "success_rate": float(data["ep_success"].mean()),
             "mean_length": float(data["ep_length"].mean())}
-    with open(os.path.join(args.out_dir, f"{args.policy_id}.json"), "w") as f:
+    tmp = os.path.join(args.out_dir, f".{args.policy_id}.json.tmp")
+    with open(tmp, "w") as f:
         json.dump(meta, f, indent=1)
+    os.replace(tmp, os.path.join(args.out_dir, f"{args.policy_id}.json"))
+    if args.drop_transitions:
+        import shutil
+        shutil.rmtree(shard_dir, ignore_errors=True)
     print(f"[collect] done: {T} transitions, success {meta['success_rate']:.3f}, "
           f"mean length {meta['mean_length']:.0f}", flush=True)
     return 0

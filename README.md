@@ -92,3 +92,7 @@ DRY_RUN=1 TASK=tool_hang DEMOS="50 200" SEEDS="0 7 42" scripts/submit_flow_bc.sh
 - Subsets: `/data/user_data/$USER/robomimic_subsets/<task>_<type>_<N>` (nested, `default_rng(0)` permutation;
   demo list in `data.attrs["subset_provenance"]`). `N_DEMOS=all` uses the full download.
 - Rolling checkpoints: `/data/user_data/$USER/ogpo_checkpoints/qipm/` (repeat_id `memcritic_<RUN_TAG>`).
+
+## Best-of-N sweep
+
+To run best-of-N with the MC critic over BC training from any account or machine, including staging the inputs, the W&B setup and fetching results back, see [`docs/bon_sweep.md`](docs/bon_sweep.md).
