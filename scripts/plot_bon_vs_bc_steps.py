@@ -71,7 +71,10 @@ def main():
     have = {N: int(sum((~np.isnan(Y)).sum() for Y in data[N].values())) for N in args.ns}
     print("points: " + ", ".join(f"N={N} {h}/{total}" for N, h in have.items()))
 
-    fig, axes = plt.subplots(2, 2, figsize=(13, 8.6), facecolor=SURFACE, sharex=True, sharey=True)
+    ncols = 1 if len(args.ns) == 1 else 2
+    nrows = (len(args.ns) + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(6.5 * ncols + 1.3 * (ncols == 1) * 2, 4.3 * nrows + 0.8),
+                             facecolor=SURFACE, sharex=True, sharey=True, squeeze=False)
     out_json = {"grid": grid.tolist(), "seeds": SEEDS}
     for ax, N in zip(axes.ravel(), args.ns):
         for colour, n in zip(RAMP, SIZES):
@@ -87,7 +90,7 @@ def main():
                         solid_capstyle="round")
             out_json[f"{n}demos/bon{N}"] = np.where(np.isnan(Y), None, Y).tolist()
         style(ax, ylabel=ax in axes[:, 0])
-        if ax not in axes[1]:
+        if ax not in axes[-1]:
             ax.set_xlabel("")
         part = "" if have[N] == total else f"  ({have[N]}/{total} points so far)"
         ax.set_title(f"Best-of-{N} vs BC alone{part}", color=INK, loc="left", fontsize=11)
@@ -97,12 +100,14 @@ def main():
     size_l = [f"{n} demos" for n in SIZES][::-1]
     style_h = [Line2D([], [], color=INK2, lw=2, marker="o", ms=4), Line2D([], [], color=INK2, lw=1.4, ls=(0, (4, 2.5)))]
     style_l = ["best-of-N, MC critic", "BC alone (N = 1)"]
-    fig.legend(size_h + style_h, size_l + style_l, frameon=False, loc="upper left", bbox_to_anchor=(0.835, 0.9),
-               labelcolor=INK2)
+    right = 0.83 if ncols == 2 else 0.74
+    fig.legend(size_h + style_h, size_l + style_l, frameon=False, loc="upper left",
+               bbox_to_anchor=(right + 0.005, 0.84 if nrows == 1 else 0.9), labelcolor=INK2)
     fig.suptitle(f"Flow BC on square-{ds}: SDE success vs BC steps, best-of-N with the no-memory MC critic\n"
-                 "mean of seeds 0, 7, 42 (3-point smoothed); band = min-max of best-of-N; "
-                 "64 episodes per point on the eval's start states", x=0.06, ha="left", color=INK, fontsize=11.5)
-    fig.tight_layout(rect=(0, 0, 0.83, 0.93))
+                 "mean of seeds 0, 7, 42 (3-point smoothed); band = min-max of best-of-N;" + ("\n" if ncols == 1 else " ") +
+                 "64 episodes per point on the eval's start states; both lines use the SDE sampler",
+                 x=0.06, ha="left", color=INK, fontsize=11.5 if ncols == 2 else 10.5)
+    fig.tight_layout(rect=(0, 0, right, 0.84 if nrows == 1 else 0.93))
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     fig.savefig(args.out + ".png", dpi=170, facecolor=SURFACE)
     with open(args.out + ".json", "w") as f:
