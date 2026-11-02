@@ -1,0 +1,52 @@
+# IMPRINT history config for robomimic square, low-dim shortcut (docs/imprint.md §4.2).
+# Copied from cosmo-wan-gated-delta-robocasa-combined600-dinov3-memft-optimized.yaml (the released
+# RoboCasa recurrent encoder, Amazon-FAR/imprint_models simulation/robocasa/recurrent). Every
+# width of the encoder core and decoder trunk is kept, so `--init_from` can copy those weights from
+# the released Stage-1 checkpoint. Only the input/output widths change (marked "square"):
+#   long-term "visual" token = concat of 4 frames' 14-d object state (56), recent token = object (14),
+#   action = 7-d OSC (causal, raw), proprio = 9 (eef_pos, eef_quat, gripper_qpos), 1 view, 1 token/chunk.
+budget: 256
+num_views: 1                       # square
+integration_type: modulation
+memory_token_dim: 1024
+representation_type: cosmo_bottleneck
+cosmo_bottleneck_memory:
+  memory_encoder_type: gated_delta_hybrid
+  memory_architecture_version: gated_delta_hybrid_v1
+  memory_compute_dtype: bfloat16   # overridden to float32 by --compute_dtype float32
+  num_query_samples: 16
+  temporal_factor: 4               # 4 env steps per finalized chunk (no frame downsample)
+  num_latents: 256
+  num_heads: 8
+  cosmos_latent_dim: 56            # square: 4 frames x 14 object dims
+  siglip_dim: 14                   # square: object state per recent frame
+  proprio_in_dim: 9                # square
+  proprio_encoding: raw
+  action_in_dim: 7                 # square
+  action_encoding: raw
+  lang_emb_dim: 2048               # unused (lang_emb=None -> no FiLM); kept so the param tree matches
+  action_tokenizer_hidden: 512
+  proprio_tokenizer_hidden: 512
+  pool_hw: 1                       # square: 1 token per chunk
+  delta_num_layers: 2
+  delta_num_heads: 8
+  delta_head_dim: 128
+  delta_conv_kernel: 4
+  delta_ffn_inner: 2048
+  delta_decay_bias: -4.0
+  delta_beta_bias: -1.0
+  delta_scan_checkpoint_size: 9    # square: events per chunk = 2*4 action/proprio + 1 visual
+  delta_full_scan_mode: chunkwise_wy
+  delta_wy_matmul_dtype: bfloat16  # overridden to float32 by --compute_dtype float32
+  delta_recent_fusion_blocks: 1
+  delta_max_chunks: 384            # >= 100 chunks of a 400-step episode; same time scale as release
+  delta_event_order: action_proprio_then_finalized_visual_v1
+cosmo_decoder:
+  num_heads: 8
+  num_blocks: 2
+  align_dim: 14                    # square: reconstruct the object state
+  align_num_patches: 1             # square
+  ffn_inner: 8192
+  action_dim: 7                    # square
+  proprio_dim: 9                   # square
+  max_query_steps: 2048
