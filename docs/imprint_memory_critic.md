@@ -77,7 +77,8 @@ The critic is `scripts/train_mc_critic.py`, the no-memory critic itself, with `-
 architecture does not change**: the same `Value` ensemble (10 × MLP 4×512, LayerNorm), optimizer,
 batch, steps, Monte Carlo targets, split and metrics. The memory is appended to the obs vector as 64
 whitened PCA components fit on the train split (`--mem_pca`). So only the first layer's input width
-grows, from 79 to 143. The clock control appends t/400 instead (`--add_timestep`).
+grows, from 79 to 143. `critic_best.pkl` stores the memory transform
+(`input_layout`), so a best-of-N consumer can rebuild the inputs from a memory cache. The clock control appends t/400 instead (`--add_timestep`).
 
 Arms, with critic seeds 0/1/2 each:
 
@@ -161,5 +162,10 @@ then in best-of-N.
 - The full-size model on GPU, so Stage-1 time per step is unknown. Look at `sec_per_step` in W&B,
   and lower `STAGE1_STEPS` if 40k steps won't fit in `STAGE1_TIME`.
 - Loading the real released checkpoint.
+- Two speedups were left out on purpose; add them if the GPU numbers call for it:
+  - **Length-bucketed Stage-1 batches.** Every history is padded to 400 steps today. Bucketing could
+    save about 1.5–2× encoder compute, if the scan cost scales with padded length.
+  - **A single recurrent pass per episode in the cache.** It would replace about 25 prefix re-encodes
+    per episode, but needs per-chunk read-outs from the encoder.
 - Online best-of-N with the memory critic, which needs a per-env memory state at eval (§5.3 of
   `docs/bon_memory_critic.md`).

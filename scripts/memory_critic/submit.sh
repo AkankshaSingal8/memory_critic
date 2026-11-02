@@ -13,7 +13,9 @@
 set -euo pipefail
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 export REPO
+set -a   # export every setting, so editing config.sh while jobs wait can't remap tasks
 source "$REPO/scripts/memory_critic/config.sh"
+set +a
 read -ra INIT_LIST <<< "$INITS"
 N_INIT=${#INIT_LIST[@]}
 mapfile -t BASE_TASKS < <(critic_tasks baseline)
@@ -54,7 +56,7 @@ if [ "${SKIP_STAGE1:-0}" != 1 ]; then
 fi
 B=$(STAGE=critic CRITIC_KIND=baseline submit mc_critic_base "$CRITIC_TIME" "0-$((${#BASE_TASKS[@]} - 1))%$BASE_THROTTLE")
 echo "baseline critics: $B"
-C=$(STAGE=cache submit mc_cache "$CACHE_TIME" "0-$((N_INIT - 1))" "${DEP_CACHE[@]}")
+C=$(STAGE=cache submit mc_cache "$CACHE_TIME" "0-$((N_INIT - 1))" ${DEP_CACHE[@]+"${DEP_CACHE[@]}"})
 echo "cache: $C"
 D=$(STAGE=critic CRITIC_KIND=memory submit mc_critic_mem "$CRITIC_TIME" "0-$((${#MEM_TASKS[@]} - 1))%$MAX_GPUS" \
     --dependency="afterok:$C,afterany:$B")

@@ -34,11 +34,9 @@ layer gets wider and nothing else changes:
 """
 
 import argparse
-import glob
 import json
 import os
 import pickle
-import re
 import sys
 import time
 
@@ -48,7 +46,7 @@ if REPO not in sys.path:
 
 import numpy as np
 
-POLICY_RE = re.compile(r"square_(ph|mh)_(\d+)demos_seed(\d+)_(sde|ode)")
+from imprint_bridge.data import POLICY_RE, rollout_files  # pure numpy; shared with the memory cache
 
 
 # --------------------------------------------------------------------------- data
@@ -83,11 +81,8 @@ def load_dataset(data_dir, gamma, horizon, points, mem_dir=None, mem_feature="me
         assert points == "decision", "the memory cache holds decision points only"
         cols["mem"] = []
     policies = []
-    for p in sorted(glob.glob(os.path.join(data_dir, "*.npz"))):
-        m = POLICY_RE.fullmatch(os.path.basename(p)[:-4])
-        if not m:
-            continue
-        ds, n, seed, _ = m.groups()
+    for p in rollout_files(data_dir):
+        ds, n, seed, _ = POLICY_RE.fullmatch(os.path.basename(p)[:-4]).groups()
         z = np.load(p)
         ep = z["episode_id"]
         G = discounted_returns(z["reward"].astype(np.float64), ep, gamma)
@@ -104,24 +99,37 @@ def load_dataset(data_dir, gamma, horizon, points, mem_dir=None, mem_feature="me
         cols["n_demos"].append(np.full(k, int(n))); cols["dataset"].append(np.full(k, ds))
         cols["policy"].append(np.full(k, pi))
         if mem_dir:
-            m = np.load(os.path.join(mem_dir, os.path.basename(p)))
-            assert (np.array_equal(m["episode_id"], ep[keep])
-                    and np.array_equal(m["timestep"], z["timestep"][keep])), f"memory cache misaligned: {p}"
-            cols["mem"].append(m[f"feat_{mem_feature}"].astype(np.float32))
+            with np.load(os.path.join(mem_dir, os.path.basename(p))) as cache:
+                assert (np.array_equal(cache["episode_id"], ep[keep])
+                        and np.array_equal(cache["timestep"], z["timestep"][keep])), f"memory cache misaligned: {p}"
+                cols["mem"].append(cache[f"feat_{mem_feature}"])   # f16; cast once after concat
     assert policies, f"no rollout files in {data_dir}"
     return {k: np.concatenate(v) for k, v in cols.items()}, policies
 
 
-def memory_inputs(mem, train_idx, n_components):
-    """Whitened PCA (fit on train rows) of the pooled memory; n_components = 0 keeps every dim, z-scored."""
-    mu = mem[train_idx].mean(0)
-    x = mem - mu
+def fit_memory_transform(mem, train_idx, n_components):
+    """Whitened PCA fit on train rows; n_components = 0 keeps every dim, z-scored.
+
+    Returns {mean, proj, scale}: features = (mem - mean) [@ proj] / scale (proj None = identity). It is
+    saved in critic_best.pkl so a consumer (e.g. best-of-N) can rebuild the critic's inputs from a raw
+    memory cache."""
+    x = mem[train_idx]
+    mu = x.mean(0)
+    x -= mu
     if n_components <= 0:
-        return (x / np.maximum(mem[train_idx].std(0), 1e-6)).astype(np.float32), None
-    _, s, vt = np.linalg.svd(x[train_idx], full_matrices=False)
-    std = s[:n_components] / np.sqrt(len(train_idx) - 1)
-    explained = float((s[:n_components] ** 2).sum() / (s ** 2).sum())
-    return (x @ vt[:n_components].T / np.maximum(std, 1e-6)).astype(np.float32), explained
+        return {"mean": mu, "proj": None, "scale": np.maximum(x.std(0), 1e-6), "explained": None}
+    evals, evecs = np.linalg.eigh(x.T.astype(np.float64) @ x / (len(x) - 1))   # ascending
+    evals, evecs = evals[::-1], evecs[:, ::-1]
+    return {"mean": mu, "proj": evecs[:, :n_components].astype(np.float32),
+            "scale": np.sqrt(np.maximum(evals[:n_components], 1e-12)).astype(np.float32),
+            "explained": float(evals[:n_components].sum() / evals.sum())}
+
+
+def apply_memory_transform(mem, tf):
+    x = mem - tf["mean"]
+    if tf["proj"] is not None:
+        x = x @ tf["proj"]
+    return (x / tf["scale"]).astype(np.float32)
 
 
 # --------------------------------------------------------------------------- metrics
@@ -202,7 +210,7 @@ def main(argv=None):
     ap.add_argument("--mem_pca", type=int, default=64)
     ap.add_argument("--add_timestep", action="store_true")
     ap.add_argument("--max_episode_steps", type=int, default=400)
-    ap.add_argument("--wandb_entity", default=os.environ.get("WANDB_ENTITY", "akankshasingal08"))
+    ap.add_argument("--wandb_entity", default=None, help="default: $WANDB_ENTITY or your W&B default")
     ap.add_argument("--wandb_project", default="memory-critic")
     ap.add_argument("--wandb_group", default="critic_mc_nomem")
     ap.add_argument("--run_name", default=None)
@@ -223,16 +231,18 @@ def main(argv=None):
     va = np.flatnonzero((ep >= args.val_start) & (ep < args.test_start))
     te = np.flatnonzero(ep >= args.test_start)
     obs_dim = d["obs"].shape[1]
-    extra, mem_explained = [], None
+    extra, mem_tf = [], None
     if args.mem_dir:
-        m, mem_explained = memory_inputs(d.pop("mem"), tr, args.mem_pca)
-        extra.append(m)
+        mem = d.pop("mem").astype(np.float32)
+        mem_tf = fit_memory_transform(mem, tr, args.mem_pca)
+        extra.append(apply_memory_transform(mem, mem_tf))
     if args.add_timestep:
         extra.append((d["timestep"] / args.max_episode_steps).astype(np.float32)[:, None])
     if extra:
         d["obs"] = np.concatenate([d["obs"].astype(np.float32)] + extra, axis=1)
         print(f"[mc-critic] critic input: obs {obs_dim} + extra {d['obs'].shape[1] - obs_dim}"
-              + (f" (memory PCA explains {mem_explained:.3f})" if mem_explained is not None else ""), flush=True)
+              + (f" (memory PCA explains {mem_tf['explained']:.3f})" if mem_tf and mem_tf["explained"] else ""),
+              flush=True)
     print(f"[mc-critic] {len(policies)} policies, {len(ep)} samples ({args.points} points): "
           f"train {len(tr)} val {len(va)} test {len(te)}; obs {d['obs'].shape[1]} act {d['act'].shape[1]} "
           f"G in [{d['G'].min():.1f}, {d['G'].max():.1f}] ({time.time() - t0:.0f}s)", flush=True)
@@ -276,7 +286,7 @@ def main(argv=None):
                              name=args.run_name or os.path.basename(os.path.normpath(args.out_dir)),
                              config={**vars(args), "policies": policies, "n_train": len(tr),
                                      "n_val": len(va), "n_test": len(te), "critic_in_dim": d["obs"].shape[1],
-                                     "mem_pca_explained": mem_explained})
+                                     "mem_pca_explained": mem_tf and mem_tf["explained"]})
         except Exception as exc:  # noqa: BLE001
             print(f"[mc-critic] W&B disabled ({type(exc).__name__}: {exc})", flush=True)
 
@@ -295,7 +305,11 @@ def main(argv=None):
             if val_mse < best["val_mse"]:
                 best = {"val_mse": val_mse, "step": step}
                 with open(os.path.join(args.out_dir, "critic_best.pkl"), "wb") as f:
-                    pickle.dump({"params": jax.device_get(params), "step": step, "config": vars(args)}, f)
+                    pickle.dump({"params": jax.device_get(params), "step": step, "config": vars(args),
+                                 "input_layout": {"obs_dim": obs_dim, "memory_transform": mem_tf,
+                                                  "memory_feature": args.mem_feature if args.mem_dir else None,
+                                                  "timestep_scale": args.max_episode_steps if args.add_timestep else None,
+                                                  "order": "obs, memory, timestep"}}, f)
             print(f"[mc-critic] step {step}: train {train_loss:.3f} val {val_mse:.3f} test {test_mse:.3f} "
                   f"(best val step {best['step']}, {time.time() - t0:.0f}s)", flush=True)
             if run is not None:

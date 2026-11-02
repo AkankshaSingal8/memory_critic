@@ -21,7 +21,6 @@ import os
 import sys
 import time
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def main(argv=None):
@@ -49,7 +48,8 @@ def main(argv=None):
     cfg = load_config(s1["config"], s1["compute_dtype"], s1.get("config_override", []))
     dtype = jnp.bfloat16 if s1["compute_dtype"] == "bfloat16" else jnp.float32
     modules = make_stage1_modules(cfg, seed=0, dtype=dtype)
-    modules = _load_stage1_checkpoint_into_modules(modules, os.path.join(args.stage1_dir, args.ckpt))
+    ckpt_path = os.path.join(args.stage1_dir, args.ckpt)
+    modules = _load_stage1_checkpoint_into_modules(modules, ckpt_path)
     graphdef, state = nnx.split((modules["bottleneck"], modules["decoder"]))
     norm = D.Norm.from_dict(np.load(os.path.join(args.stage1_dir, "norm.npz")))
     sh = D.Shapes(max_steps=s1["max_steps"])
@@ -61,11 +61,22 @@ def main(argv=None):
                         b["cosmo_proprio_emb"], b["cosmo_mem_mask"], lang_emb=None,
                         recent_mask=b["cosmo_recent_mask"], action_mask=b["cosmo_action_mask"],
                         proprio_mask=b["cosmo_proprio_mask"])
-        # the decoder's progress branch (cosmo_decoder.py, CosmoMemoryDecoder.__call__), stopped before its head
+        # the decoder's progress branch (cosmo_decoder.py, CosmoMemoryDecoder.__call__ at submodule e89a16e),
+        # stopped before its head; re-check this copy if the IMPRINT submodule is bumped
         rq = jnp.broadcast_to(dec.reward_query.value.astype(dec.dtype)[None, None], (mem.shape[0], 1, dec.dim))
         rq = rq + dec.reward_cross(dec.reward_norm_q(rq), dec.reward_norm_kv(mem))
         prog = jax.nn.sigmoid(dec.head_reward(rq)[:, 0, 0])
         return (mem.mean(1).astype(jnp.float16), rq[:, 0].astype(jnp.float16), prog.astype(jnp.float32))
+
+    best_path = os.path.join(args.stage1_dir, "best.json")
+    source = {"ckpt": os.path.abspath(ckpt_path), "ckpt_mtime": os.path.getmtime(ckpt_path),
+              "best": json.load(open(best_path)) if os.path.exists(best_path) else None}
+    meta_path = os.path.join(args.out_dir, "cache_source.json")
+    if os.path.exists(meta_path) and json.load(open(meta_path)) != source:
+        raise SystemExit(f"{args.out_dir} was cached from a different Stage-1 checkpoint "
+                         f"({meta_path}); delete it or pass a new --out_dir")
+    with open(meta_path, "w") as f:
+        json.dump(source, f, indent=1)
 
     files = D.rollout_files(args.data_dir)[:args.max_policies]
     t0 = time.time()
@@ -77,7 +88,10 @@ def main(argv=None):
             continue
         z = np.load(path)
         eps = {e.episode_id: norm.apply(e) for e in D.split_episodes(z, policy)}
+        longest = max(len(e.obj) for e in eps.values())
+        assert longest <= sh.max_steps, f"{policy}: episode of {longest} steps > Stage-1 max_steps {sh.max_steps}"
         rows = np.flatnonzero(z["chunk_pos"] == 0)
+        assert len(rows), f"{policy}: no decision points"
         ep_ids, ts = z["episode_id"][rows].astype(np.int64), z["timestep"][rows].astype(np.int64)
         outs = []
         for i in range(0, len(rows), args.batch_size):

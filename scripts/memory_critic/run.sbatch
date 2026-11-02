@@ -26,10 +26,10 @@ export TMPDIR="${JOB_TMP_ROOT:-/data/user_data/$USER/tmp}/${SLURM_JOB_ID:-local}
 mkdir -p "$TMPDIR"
 IMPRINT_PATH="$REPO:$REPO/third_party/imprint/src:$REPO/third_party/imprint/packages/openpi-client/src"
 read -ra INIT_LIST <<< "$INITS"
+INIT=${INIT_LIST[$TASK]:-}   # stage1 / cache task
 
 case $STAGE in
 stage1)
-    INIT=${INIT_LIST[$TASK]}
     OUT="$OUT_ROOT/stage1/$INIT"
     EXTRA=()
     if [ "$INIT" = ft ]; then
@@ -44,15 +44,15 @@ print(hf_hub_download(sys.argv[1], sys.argv[2], local_dir=sys.argv[3]))" \
     PYTHONPATH="$IMPRINT_PATH" "$IMPRINT_PY" -m imprint_bridge.train_stage1 --data_dir "$DATA_DIR" \
         --out_dir "$OUT" --num_steps "$STAGE1_STEPS" --batch_size "$STAGE1_BATCH" --lr "$STAGE1_LR" \
         --wandb_entity "$WANDB_ENTITY" --wandb_project "$WANDB_PROJECT" --run_name "imprint_stage1_$INIT" \
-        "${EXTRA[@]}"
+        ${EXTRA[@]+"${EXTRA[@]}"}
     ;;
 cache)
-    INIT=${INIT_LIST[$TASK]}
     PYTHONPATH="$IMPRINT_PATH" "$IMPRINT_PY" -m imprint_bridge.cache_memory --stage1_dir "$OUT_ROOT/stage1/$INIT" \
         --data_dir "$DATA_DIR" --out_dir "$OUT_ROOT/memory/$INIT"
     ;;
 critic)
     mapfile -t TASKS < <(critic_tasks "${CRITIC_KIND:?}")
+    [ -n "${TASKS[$TASK]:-}" ] || { echo "no critic task $TASK in the $CRITIC_KIND table" >&2; exit 2; }
     read -r TAG SEED ARGS <<< "${TASKS[$TASK]}"
     OUT="$OUT_ROOT/critics/${TAG}_seed${SEED}"
     if [ -f "$OUT/metrics.json" ]; then echo "done already: $OUT"; exit 0; fi

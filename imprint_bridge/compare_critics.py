@@ -40,7 +40,7 @@ def main(argv=None):
     for (arm, sl), m in sorted(rows.items(), key=lambda kv: (str(kv[0][1]), kv[0][0])):
         print(f"{arm:>22} {sl:>6} {len(m['mse']):>5} {fmt(m['mse'])} {fmt(m['r2'])} {fmt(m['auc_success'])} "
               f"{fmt(m['ece'])}")
-        table.append({"arm": arm, "slice": sl, **{k: v for k, v in m.items()}})
+        table.append({"arm": arm, "slice": sl, **m})
     if args.out:
         with open(args.out, "w") as f:
             json.dump(table, f, indent=1)

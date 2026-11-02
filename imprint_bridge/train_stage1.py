@@ -21,6 +21,7 @@ is validation; test episodes are never seen.
 """
 
 import argparse
+import functools
 import json
 import logging
 import os
@@ -60,7 +61,7 @@ def parse_args(argv=None):
     p.add_argument("--max_policies", type=int, default=None, help="smoke tests only")
     p.add_argument("--config_override", action="append", default=[],
                    help="OmegaConf dotlist entry, e.g. memory_token_dim=64 (smoke tests only)")
-    p.add_argument("--wandb_entity", default="akankshasingal08")
+    p.add_argument("--wandb_entity", default=None, help="default: $WANDB_ENTITY (run.sbatch sets akankshasingal08)")
     p.add_argument("--wandb_project", default="memory-critic")
     p.add_argument("--wandb_group", default="imprint_stage1")
     p.add_argument("--run_name", default=None)
@@ -78,21 +79,33 @@ def load_config(path, compute_dtype, overrides=()):
     return cfg
 
 
-def init_from_released(modules, path):
-    """Copy every tensor whose key and shape match from a released Stage-1 npz; report the rest."""
+def init_from_released(modules, path, min_fraction=0.5):
+    """Copy every tensor whose key and shape match from a released Stage-1 npz; report the rest.
+
+    IMPRINT's own loader (_load_stage1_checkpoint_into_modules) requires every shape to match, which
+    ours can't (different input/output widths), so this is its shape-tolerant variant. Keys come from
+    IMPRINT's _module_flat_params, the format _save_checkpoint writes."""
     import flax.traverse_util as trav
     import numpy as np
     from flax import nnx
+    from mme_vla_suite.scripts.pretrain_bottleneck import _module_flat_params
 
     src = np.load(path, allow_pickle=True)
+    want = str(modules["bottleneck"].architecture_name)
+    got = str(np.asarray(src["metadata/memory_architecture"]).item()) if "metadata/memory_architecture" in src.files else None
+    if got != want:
+        raise ValueError(f"--init_from {path}: architecture {got!r}, expected {want!r}")
     report = {}
     for prefix in ("bottleneck", "decoder"):
         graphdef, st = nnx.split(modules[prefix])
         flat = trav.flatten_dict(st.to_pure_dict())
-        loaded, shape_skip = [], []
-        for key, cur in flat.items():
-            name = f"{prefix}/" + "/".join(str(x) for x in key)
+        names = list(_module_flat_params(modules[prefix], prefix))   # same order as flat
+        loaded, shape_skip, missing = [], [], []
+        n_cur = n_loaded = 0
+        for (key, cur), name in zip(flat.items(), names, strict=True):
+            n_cur += int(np.size(cur))
             if name not in src.files:
+                missing.append(name)
                 continue
             arr = np.asarray(src[name])
             if arr.shape != np.shape(cur):
@@ -100,16 +113,17 @@ def init_from_released(modules, path):
                 continue
             flat[key] = arr.astype(np.asarray(cur).dtype)
             loaded.append(name)
-        missing = [f"{prefix}/" + "/".join(str(x) for x in k) for k in flat
-                   if f"{prefix}/" + "/".join(str(x) for x in k) not in src.files]
+            n_loaded += arr.size
+        frac = n_loaded / max(n_cur, 1)
+        if frac < min_fraction:
+            raise ValueError(f"--init_from {path} filled only {frac:.1%} of {prefix} params "
+                             f"(key or architecture mismatch?); refusing to train a de facto scratch run")
         st.replace_by_pure_dict(trav.unflatten_dict(flat))
         modules[prefix] = nnx.merge(graphdef, st)
-        n_cur = sum(int(np.size(v)) for v in flat.values())
-        n_loaded = sum(int(np.size(src[k])) for k in loaded)
         report[prefix] = {"tensors": len(flat), "loaded": len(loaded), "shape_mismatch": shape_skip,
-                          "missing_in_ckpt": missing, "param_fraction_loaded": n_loaded / max(n_cur, 1)}
+                          "missing_in_ckpt": missing, "param_fraction_loaded": frac}
         logger.info("init_from %s: %d/%d tensors (%.1f%% of params); shape-mismatched (re-initialised): %s",
-                    prefix, len(loaded), len(flat), 100 * n_loaded / max(n_cur, 1), shape_skip)
+                    prefix, len(loaded), len(flat), 100 * frac, shape_skip)
     return modules, report
 
 
@@ -187,7 +201,7 @@ def main(argv=None):
         bmk, dec = nnx.merge(graphdef, st)
         return composite_alignment_loss({"bottleneck": bmk, "decoder": dec}, batch, weights)
 
-    @jax.jit
+    @functools.partial(jax.jit, donate_argnums=(0, 1))
     def train_step(st, os_, batch):
         (total, parts), grads = jax.value_and_grad(loss_fn, has_aux=True)(st, batch)
         updates, os_ = tx.update(grads, os_, st)
@@ -195,11 +209,8 @@ def main(argv=None):
 
     eval_step = jax.jit(loss_fn)
 
-    def strip(batch):
-        return batch if has_progress else {k: v for k, v in batch.items() if k != "reward_target"}
-
     val_it = D.stage1_batches(val, sh, args.batch_size, np.random.default_rng(12345))
-    val_set = [strip(next(val_it)) for _ in range(args.val_batches)]
+    val_set = [next(val_it) for _ in range(args.val_batches)]
 
     def target_var(key):
         m = np.concatenate([b["query_mask"].reshape(-1) for b in val_set])
@@ -238,10 +249,13 @@ def main(argv=None):
     hist_path = os.path.join(args.out_dir, "history.json")
     if done and os.path.exists(hist_path):
         prev = json.load(open(hist_path))
-        history, best = prev["history"], prev["best"]
+        history = [h for h in prev["history"] if h["step"] <= step]
+    best_path = os.path.join(args.out_dir, "best.json")
+    if done and os.path.exists(best_path):  # stage1_stepbest.npz may be newer than the resumed state
+        best = json.load(open(best_path))
     tlog = time.time()
     while step < args.num_steps:
-        state, opt_state, total, parts = train_step(state, opt_state, strip(next(train_it)))
+        state, opt_state, total, parts = train_step(state, opt_state, next(train_it))
         step += 1
         if step % args.log_every == 0:
             total = float(total)
@@ -265,6 +279,8 @@ def main(argv=None):
                 best = {"val_loss": val_loss, "step": step}
                 bmk, dec = nnx.merge(graphdef, state)
                 _save_checkpoint(args.out_dir, "best", {"bottleneck": bmk, "decoder": dec})
+                with open(best_path, "w") as f:
+                    json.dump(best, f)
         if step % args.ckpt_every == 0 or step == args.num_steps:
             _save_training_state(args.out_dir, step, state, opt_state)
             for old in (d for d in os.listdir(full_dir) if d.isdigit() and int(d) < step):

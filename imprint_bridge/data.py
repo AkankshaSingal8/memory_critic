@@ -89,11 +89,13 @@ def split_episodes(z, policy):
     ep_ids = z["episode_id"]
     obs, act = z["obs"].astype(np.float32), z["action"].astype(np.float32)
     sub = z["subtask_status"] if "subtask_status" in z.files else None
-    has_sub = sub is not None and sub.ndim == 2 and sub.shape[1] > 0
+    # collect_flow_bc_rollouts.py writes -1 when the env reports no subtask flags
+    has_sub = sub is not None and sub.ndim == 2 and sub.shape[1] > 0 and (sub >= 0).all()
+    timestep = z["timestep"]   # NpzFile re-reads a member on every access
     bounds = np.flatnonzero(np.diff(ep_ids)) + 1
     out = []
     for s, e in zip(np.r_[0, bounds], np.r_[bounds, len(ep_ids)]):
-        assert np.all(z["timestep"][s:e] == np.arange(e - s)), f"{policy}: episode {ep_ids[s]} not contiguous"
+        assert np.all(timestep[s:e] == np.arange(e - s)), f"{policy}: episode {ep_ids[s]} not contiguous"
         out.append(Episode(policy, int(ep_ids[s]), obs[s:e, PROPRIO_DIM:PROPRIO_DIM + OBJECT_DIM],
                            obs[s:e, :PROPRIO_DIM], causal_actions(act[s:e]),
                            sub[s:e].astype(np.float32).mean(1) if has_sub else None))
@@ -129,6 +131,7 @@ def history_inputs(ep, t, sh):
     """Encoder inputs for the history 0..t of one (normalized) episode, padded to `sh`."""
     TF = sh.temporal_factor
     n = t + 1
+    assert n <= sh.max_steps, f"history of {n} steps > max_steps {sh.max_steps}"
     nc = n // TF
     lat = np.zeros((sh.max_chunks, TF * OBJECT_DIM), np.float32)
     lat_mask = np.zeros(sh.max_chunks, bool)
@@ -148,7 +151,7 @@ def history_inputs(ep, t, sh):
     return {"cosmo_latent_emb": lat, "cosmo_mem_mask": lat_mask,
             "cosmo_recent_emb": rec, "cosmo_recent_mask": rec_mask,
             "cosmo_action_emb": act, "cosmo_action_mask": step_mask,
-            "cosmo_proprio_emb": pro, "cosmo_proprio_mask": step_mask.copy()}
+            "cosmo_proprio_emb": pro, "cosmo_proprio_mask": step_mask}
 
 
 def stage1_sample(ep, t, sh, rng):
@@ -157,7 +160,7 @@ def stage1_sample(ep, t, sh, rng):
     K = min(sh.num_query, n)
     q = np.zeros(sh.num_query, np.int64)
     qm = np.zeros(sh.num_query, bool)
-    q[:K] = np.sort(rng.choice(n, K, replace=False)) if K < n else np.arange(n)
+    q[:K] = np.sort(rng.choice(n, K, replace=False))
     qm[:K] = True
     out.update(query_steps=q, query_mask=qm,
                align_target=ep.obj[q][:, None, :],   # (Q, P=1, 14)
