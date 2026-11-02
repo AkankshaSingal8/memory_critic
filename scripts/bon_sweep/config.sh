@@ -2,11 +2,11 @@
 # bon_sweep.sbatch and stage_inputs.sh. Every value can be overridden from the environment, e.g.
 #   CRITIC_SEEDS="1" NS="8" scripts/bon_sweep/submit.sh
 #
-# Defaults are the asingal2 paths on Babel. On another account or machine, point INPUT_ROOT and
-# DATASET_ROOT at the staged copy (scripts/bon_sweep/stage_inputs.sh) and OUT_ROOT at somewhere
-# that account can write.
+# Defaults run from the asingal2 account on Babel: its own /data paths, CPU only on maxlab-cpu, W&B
+# from its own login. On another account or machine, point INPUT_ROOT and DATASET_ROOT at the staged
+# copy (scripts/bon_sweep/stage_inputs.sh) and OUT_ROOT at somewhere that account can write.
 
-# --- what to run: one array task per (dataset, size, BC seed, critic seed)
+# --- what to run: one array task per BC policy (dataset, size, BC seed); it runs every critic seed
 DATASETS=${DATASETS:-"ph mh"}
 SIZES=${SIZES:-"10 20 50 100 200"}
 BC_SEEDS=${BC_SEEDS:-"0 7 42"}
@@ -38,18 +38,20 @@ WANDB_PROJECT=${WANDB_PROJECT:-memory-critic}
 WANDB_GROUP=${WANDB_GROUP:-bon_curve_mc_critic}
 WANDB_MODE=${WANDB_MODE:-online}          # offline: sync later with `wandb sync $LOG_DIR/wandb/wandb/offline-run-*`
 
-# --- Slurm. Babel general needs a GPU and the normal QOS; for preempt use
-# PARTITION=preempt QOS=preempt_qos.
-PARTITION=${PARTITION:-general}
-QOS=${QOS:-normal}
-GRES=${GRES:-gpu:1}
-PARALLEL=${PARALLEL:-3}                   # (T, N) rollouts at once in a task, sharing the GPU
-CPUS=${CPUS:-24}                          # about PARALLEL * (N_ENVS + 1); if sbatch refuses, try PARALLEL=2 CPUS=18
-MEM=${MEM:-64G}
-TIME=${TIME:-1-00:00:00}                  # general MaxTime is 2 days
+# --- Slurm. The rollouts run fine on CPU (about 1.5 min each), so the default is asingal2's
+# maxlab-cpu (no GPU; 10 jobs at once, MaxTime 6 h). For a GPU partition set GRES too, e.g.
+#   PARTITION=general QOS=normal GRES=gpu:1
+PARTITION=${PARTITION:-maxlab-cpu}
+QOS=${QOS-maxlab_cpu_qos}
+GRES=${GRES-}                             # empty = CPU only
+PARALLEL=${PARALLEL:-3}                   # rollouts at once in a task
+CPUS=${CPUS:-27}                          # PARALLEL * (N_ENVS + 1)
+MEM=${MEM:-48G}
+TIME=${TIME:-6:00:00}                     # a task takes about 30-45 min
 EXTRA_SBATCH=${EXTRA_SBATCH:-}            # e.g. "--exclude=babel-x-1 --mail-type=END"
 
 PYTHON=${PYTHON:-$REPO/.venv/bin/python}
+[ -z "$GRES" ] && JAX_PLATFORMS=${JAX_PLATFORMS:-cpu}   # no GPU: skip the CUDA probe
 
 n_words() { set -- $1; echo $#; }
-N_TASKS=$(( $(n_words "$DATASETS") * $(n_words "$SIZES") * $(n_words "$BC_SEEDS") * $(n_words "$CRITIC_SEEDS") ))
+N_TASKS=$(( $(n_words "$DATASETS") * $(n_words "$SIZES") * $(n_words "$BC_SEEDS") ))   # 30; QOS limits allow at most 50 queued

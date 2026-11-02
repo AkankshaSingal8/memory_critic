@@ -95,4 +95,4 @@ DRY_RUN=1 TASK=tool_hang DEMOS="50 200" SEEDS="0 7 42" scripts/submit_flow_bc.sh
 
 ## Best-of-N sweep
 
-To run best-of-N with the MC critic over BC training from any account or machine, including staging the inputs, the W&B setup and fetching results back, see [`docs/bon_sweep.md`](docs/bon_sweep.md).
+Best-of-N with the MC critic over BC training (critic seeds 1-2, N = 8/16/32): `scripts/bon_sweep/submit.sh` from the asingal2 account submits all 30 CPU jobs. Details in [`docs/bon_sweep.md`](docs/bon_sweep.md).

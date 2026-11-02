@@ -2,7 +2,7 @@
 # Submit the best-of-N sweep (docs/bon_sweep.md). Settings: scripts/bon_sweep/config.sh, each
 # overridable from the environment.
 #
-#   scripts/bon_sweep/submit.sh                  # full sweep: 2 datasets x 5 sizes x 3 BC seeds x 2 critic seeds
+#   scripts/bon_sweep/submit.sh                  # full sweep: 2 datasets x 5 sizes x 3 BC seeds (each task: both critic seeds)
 #   DRY_RUN=1 scripts/bon_sweep/submit.sh        # print the sbatch command and the task table only
 #   CHECK=1 scripts/bon_sweep/submit.sh          # sbatch --test-only (start estimate, nothing queued)
 #   ARRAY=0-3 scripts/bon_sweep/submit.sh        # a subset of tasks (also how to resubmit failed ones)
@@ -15,20 +15,20 @@ source "$REPO/scripts/bon_sweep/config.sh"
 ARRAY=${ARRAY:-0-$((N_TASKS - 1))}
 
 export DATASETS SIZES BC_SEEDS CRITIC_SEEDS NS STEPS EPISODES N_ENVS RNG_KEY KEEP_TRANSITIONS \
-       INPUT_ROOT DATASET_ROOT OUT_ROOT LOG_DIR SCRATCH_ROOT PARALLEL PYTHON \
+       INPUT_ROOT DATASET_ROOT OUT_ROOT LOG_DIR SCRATCH_ROOT PARALLEL PYTHON JAX_PLATFORMS \
        WANDB_ENTITY WANDB_PROJECT WANDB_GROUP WANDB_MODE
 
 echo "tasks: $N_TASKS  (datasets: $DATASETS | sizes: $SIZES | BC seeds: $BC_SEEDS | critic seeds: $CRITIC_SEEDS)"
-echo "per task: steps ($STEPS) x N ($NS), $EPISODES episodes each, $PARALLEL at a time"
+echo "per task: critic seeds ($CRITIC_SEEDS) x steps ($STEPS) x N ($NS), $EPISODES episodes each, $PARALLEL at a time"
 echo "inputs: $INPUT_ROOT  datasets: $DATASET_ROOT"
 echo "outputs: $OUT_ROOT/mc_decision_seed<C>   logs: $LOG_DIR"
 echo "W&B: $WANDB_ENTITY/$WANDB_PROJECT group $WANDB_GROUP ($WANDB_MODE)"
 if [ "${DRY_RUN:-0}" = 1 ]; then
-    read -ra DS_ <<< "$DATASETS"; read -ra SZ_ <<< "$SIZES"; read -ra BS_ <<< "$BC_SEEDS"; read -ra CS_ <<< "$CRITIC_SEEDS"
+    read -ra DS_ <<< "$DATASETS"; read -ra SZ_ <<< "$SIZES"; read -ra BS_ <<< "$BC_SEEDS"
     i=0
-    for d in "${DS_[@]}"; do for s in "${SZ_[@]}"; do for b in "${BS_[@]}"; do for c in "${CS_[@]}"; do
-        echo "  task $i: square_${d}_${s}demos_seed${b}, critic seed $c"; i=$((i + 1))
-    done; done; done; done
+    for d in "${DS_[@]}"; do for s in "${SZ_[@]}"; do for b in "${BS_[@]}"; do
+        echo "  task $i: square_${d}_${s}demos_seed${b}"; i=$((i + 1))
+    done; done; done
 fi
 
 if [ "$WANDB_MODE" = online ] && ! grep -q "api.wandb.ai" ~/.netrc 2>/dev/null && [ -z "${WANDB_API_KEY:-}" ]; then
