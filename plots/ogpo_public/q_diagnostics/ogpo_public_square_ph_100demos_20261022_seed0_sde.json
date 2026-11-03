@@ -1,0 +1,18 @@
+{
+ "run": "ogpo_public_square_ph_100demos_20261022_seed0",
+ "sampler": "sde",
+ "ckpt_step": 2030000,
+ "episodes": 64,
+ "success": 0.875,
+ "eval_info": {
+  "is_success.task": 1.0,
+  "is_success._task": 1.0,
+  "_is_success": 1.0,
+  "success": 0.875,
+  "_success": 1.0,
+  "return": -136.28125,
+  "_return": 1.0,
+  "length": 104.60714285714286,
+  "_length": 1.0
+ }
+}

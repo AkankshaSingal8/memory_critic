@@ -1,0 +1,222 @@
+{
+ "ogpo_public_square_mh_10demos_20261022_seed0/ode": {
+  "decisions": 6400,
+  "episodes": 64,
+  "success": 0.0,
+  "pearson_q_mc": 0.11078057793389653,
+  "mean_q": -99.9990005493164,
+  "mean_mc": -76.05946350097656,
+  "mean_q_minus_mc": -23.939531326293945,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_10demos_20261022_seed0/sde": {
+  "decisions": 6400,
+  "episodes": 64,
+  "success": 0.0,
+  "pearson_q_mc": 0.16885108094026544,
+  "mean_q": -99.9990005493164,
+  "mean_mc": -76.05946350097656,
+  "mean_q_minus_mc": -23.939533233642578,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_20demos_20261022_seed0/ode": {
+  "decisions": 5756,
+  "episodes": 64,
+  "success": 0.265625,
+  "pearson_q_mc": 0.3732172494582445,
+  "mean_q": -94.38670349121094,
+  "mean_mc": -73.5112075805664,
+  "mean_q_minus_mc": -20.875507354736328,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_20demos_20261022_seed0/sde": {
+  "decisions": 5653,
+  "episodes": 64,
+  "success": 0.265625,
+  "pearson_q_mc": 0.4235981141131968,
+  "mean_q": -94.01284790039062,
+  "mean_mc": -73.12694549560547,
+  "mean_q_minus_mc": -20.885900497436523,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_50demos_20261022_seed0/ode": {
+  "decisions": 4287,
+  "episodes": 64,
+  "success": 0.53125,
+  "pearson_q_mc": 0.5871875945776124,
+  "mean_q": -79.59486389160156,
+  "mean_mc": -67.29833221435547,
+  "mean_q_minus_mc": -12.29653263092041,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_50demos_20261022_seed0/sde": {
+  "decisions": 3774,
+  "episodes": 64,
+  "success": 0.6875,
+  "pearson_q_mc": 0.6913562058550419,
+  "mean_q": -76.28437805175781,
+  "mean_mc": -63.390567779541016,
+  "mean_q_minus_mc": -12.893808364868164,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_100demos_20261022_seed0/ode": {
+  "decisions": 3394,
+  "episodes": 64,
+  "success": 0.8125,
+  "pearson_q_mc": 0.7755460714716369,
+  "mean_q": -67.65701293945312,
+  "mean_mc": -59.431976318359375,
+  "mean_q_minus_mc": -8.225031852722168,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_100demos_20261022_seed0/sde": {
+  "decisions": 3059,
+  "episodes": 64,
+  "success": 0.859375,
+  "pearson_q_mc": 0.820918938380814,
+  "mean_q": -63.41522979736328,
+  "mean_mc": -56.03874969482422,
+  "mean_q_minus_mc": -7.376483917236328,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_mh_200demos_20261022_seed0/ode": {
+  "decisions": 2878,
+  "episodes": 64,
+  "success": 0.859375,
+  "pearson_q_mc": 0.7550897613249673,
+  "mean_q": -59.92041015625,
+  "mean_mc": -54.48274230957031,
+  "mean_q_minus_mc": -5.4376702308654785,
+  "ckpt_step": 2095000
+ },
+ "ogpo_public_square_mh_200demos_20261022_seed0/sde": {
+  "decisions": 2359,
+  "episodes": 64,
+  "success": 0.953125,
+  "pearson_q_mc": 0.8662326626090927,
+  "mean_q": -52.51243209838867,
+  "mean_mc": -46.94598388671875,
+  "mean_q_minus_mc": -5.566450119018555,
+  "ckpt_step": 2095000
+ },
+ "ogpo_public_square_mh_20261022_seed0/ode": {
+  "decisions": 2553,
+  "episodes": 64,
+  "success": 0.9375,
+  "pearson_q_mc": 0.8700363891916099,
+  "mean_q": -53.99533462524414,
+  "mean_mc": -49.664573669433594,
+  "mean_q_minus_mc": -4.330761909484863,
+  "ckpt_step": 2100000
+ },
+ "ogpo_public_square_mh_20261022_seed0/sde": {
+  "decisions": 2243,
+  "episodes": 64,
+  "success": 0.984375,
+  "pearson_q_mc": 0.9644949847274327,
+  "mean_q": -47.8785400390625,
+  "mean_mc": -44.48450469970703,
+  "mean_q_minus_mc": -3.3940370082855225,
+  "ckpt_step": 2100000
+ },
+ "ogpo_public_square_ph_10demos_20261022_seed0/ode": {
+  "decisions": 4444,
+  "episodes": 64,
+  "success": 0.453125,
+  "pearson_q_mc": 0.5908915405056778,
+  "mean_q": -87.08241271972656,
+  "mean_mc": -68.79559326171875,
+  "mean_q_minus_mc": -18.286815643310547,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_ph_10demos_20261022_seed0/sde": {
+  "decisions": 4441,
+  "episodes": 64,
+  "success": 0.453125,
+  "pearson_q_mc": 0.599929458167648,
+  "mean_q": -87.86371612548828,
+  "mean_mc": -68.8441390991211,
+  "mean_q_minus_mc": -19.01957130432129,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_ph_20demos_20261022_seed0/ode": {
+  "decisions": 3196,
+  "episodes": 64,
+  "success": 0.703125,
+  "pearson_q_mc": 0.6955502457134924,
+  "mean_q": -73.3469467163086,
+  "mean_mc": -60.66592025756836,
+  "mean_q_minus_mc": -12.68102741241455,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_ph_20demos_20261022_seed0/sde": {
+  "decisions": 3022,
+  "episodes": 64,
+  "success": 0.734375,
+  "pearson_q_mc": 0.7364002699890206,
+  "mean_q": -71.67576599121094,
+  "mean_mc": -59.01111602783203,
+  "mean_q_minus_mc": -12.66464900970459,
+  "ckpt_step": 2500000
+ },
+ "ogpo_public_square_ph_50demos_20261022_seed0/ode": {
+  "decisions": 2845,
+  "episodes": 64,
+  "success": 0.78125,
+  "pearson_q_mc": 0.724363242417417,
+  "mean_q": -68.88034057617188,
+  "mean_mc": -56.96931076049805,
+  "mean_q_minus_mc": -11.911027908325195,
+  "ckpt_step": 2030000
+ },
+ "ogpo_public_square_ph_50demos_20261022_seed0/sde": {
+  "decisions": 2607,
+  "episodes": 64,
+  "success": 0.8125,
+  "pearson_q_mc": 0.7818360873996921,
+  "mean_q": -66.00028228759766,
+  "mean_mc": -54.494319915771484,
+  "mean_q_minus_mc": -11.505969047546387,
+  "ckpt_step": 2030000
+ },
+ "ogpo_public_square_ph_100demos_20261022_seed0/ode": {
+  "decisions": 2267,
+  "episodes": 64,
+  "success": 0.890625,
+  "pearson_q_mc": 0.8074779075557053,
+  "mean_q": -56.91342544555664,
+  "mean_mc": -48.79003143310547,
+  "mean_q_minus_mc": -8.123392105102539,
+  "ckpt_step": 2030000
+ },
+ "ogpo_public_square_ph_100demos_20261022_seed0/sde": {
+  "decisions": 2284,
+  "episodes": 64,
+  "success": 0.875,
+  "pearson_q_mc": 0.7870297431184613,
+  "mean_q": -57.948951721191406,
+  "mean_mc": -49.62614059448242,
+  "mean_q_minus_mc": -8.322813034057617,
+  "ckpt_step": 2030000
+ },
+ "ogpo_public_square_ph_20261022_seed0/ode": {
+  "decisions": 2187,
+  "episodes": 64,
+  "success": 0.921875,
+  "pearson_q_mc": 0.8211163323373059,
+  "mean_q": -54.997161865234375,
+  "mean_mc": -47.23258972167969,
+  "mean_q_minus_mc": -7.7645792961120605,
+  "ckpt_step": 2035000
+ },
+ "ogpo_public_square_ph_20261022_seed0/sde": {
+  "decisions": 1816,
+  "episodes": 64,
+  "success": 0.96875,
+  "pearson_q_mc": 0.9027086119481845,
+  "mean_q": -44.82684326171875,
+  "mean_mc": -39.371971130371094,
+  "mean_q_minus_mc": -5.454870700836182,
+  "ckpt_step": 2035000
+ }
+}
