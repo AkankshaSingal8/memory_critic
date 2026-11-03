@@ -67,11 +67,14 @@ def chunk_actions(action, episode_id, horizon):
     return out.reshape(T, horizon * A)
 
 
-def load_dataset(data_dir, gamma, horizon, points):
+def load_dataset(data_dir, gamma, horizon, points, events=False, policy_glob="*"):
+    """events=True (decision points only) adds "event": the chunk executed from each decision,
+    obs_{t:t+horizon} then a_{t:t+horizon}, flattened and zero-padded (memcritic/history.py)."""
+    assert not events or points == "decision", "events need decision points"
     cols = {k: [] for k in ("obs", "act", "G", "episode", "timestep", "ep_success", "group", "n_demos",
-                            "dataset", "policy")}
+                            "dataset", "policy") + (("event",) if events else ())}
     policies = []
-    for p in sorted(glob.glob(os.path.join(data_dir, "*.npz"))):
+    for p in sorted(glob.glob(os.path.join(data_dir, policy_glob + ".npz"))):
         m = POLICY_RE.fullmatch(os.path.basename(p)[:-4])
         if not m:
             continue
@@ -87,6 +90,8 @@ def load_dataset(data_dir, gamma, horizon, points):
         cols["obs"].append(z["obs"][keep]); cols["act"].append(acts[keep]); cols["G"].append(G[keep])
         cols["episode"].append(ep[keep]); cols["timestep"].append(z["timestep"][keep])
         cols["ep_success"].append(succ[keep])
+        if events:
+            cols["event"].append(np.concatenate([chunk_actions(z["obs"], ep, horizon)[keep], acts[keep]], 1))
         k = int(keep.sum())
         cols["group"].append(np.full(k, f"{ds}-{int(n)}"))
         cols["n_demos"].append(np.full(k, int(n))); cols["dataset"].append(np.full(k, ds))
