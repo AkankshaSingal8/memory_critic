@@ -32,6 +32,9 @@ class MemoryValue(nn.Module):
         elif self.memory == "gru":
             e = nn.relu(nn.LayerNorm()(nn.Dense(self.gru_dim)(hist)))
             f, _ = nn.RNN(nn.GRUCell(self.gru_dim), return_carry=True, name="gru")(e, seq_lengths=hist_len)
+            # flax picks the carry at seq_lengths - 1, i.e. the LAST step when the length is 0: use the
+            # initial (zero) carry for an empty memory instead
+            f = jnp.where(hist_len[:, None] > 0, f, 0.0)
         else:
             raise ValueError(self.memory)
         m = nn.Dense(self.mem_dim, name="mem_proj")(f)
