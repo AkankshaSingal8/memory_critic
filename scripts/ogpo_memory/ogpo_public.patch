@@ -1,0 +1,64 @@
+diff --git a/ogpo/configs/algos/common.yaml b/ogpo/configs/algos/common.yaml
+index a34a81c..af21c33 100644
+--- a/ogpo/configs/algos/common.yaml
++++ b/ogpo/configs/algos/common.yaml
+@@ -69,6 +69,13 @@ dataset:
+   ogbench_dir: null
+   p_aug: null
+ 
++memory:                        # IMPRINT episode memory (memory_critic repo: imprint_bridge/ogpo_hooks.py)
++  mode: none                   # none | critic (B1: critic only) | actor_critic (B2: actor and critic)
++  stage1_dir: null             # imprint_bridge/train_stage1.py output dir (frozen encoder + norm stats)
++  ckpt: stage1_stepbest.npz
++  feature: mean                # mean | progress (pooling of the 256 memory tokens)
++  projection: null             # npz from imprint_bridge/fit_projection.py; null = raw pooled memory
++
+ checkpoint:
+   restore_actor_path: null
+   restore_critic_path: null
+diff --git a/ogpo/main.py b/ogpo/main.py
+index 17f9fe3..12bfa6f 100644
+--- a/ogpo/main.py
++++ b/ogpo/main.py
+@@ -198,6 +198,12 @@ def main():
+             post_success_steps=env_config.get("post_success_steps", 0),
+         )
+ 
++    memory_config = config.get("memory", {}) or {}
++    if (memory_config.get("mode") or "none") != "none":   # the CLI parser turns "none" into None
++        from imprint_bridge.ogpo_hooks import install as install_memory
++        env, eval_env, eval_envs, train_dataset = install_memory(
++            env, eval_env, eval_envs, train_dataset, memory_config, n_eval_envs)
++
+     random.seed(seed)
+     np.random.seed(seed)
+     dataset_rng = np.random.default_rng(seed + 20000)
+diff --git a/scripts/ogpo/square.sh b/scripts/ogpo/square.sh
+index 61887ac..56a6d26 100644
+--- a/scripts/ogpo/square.sh
++++ b/scripts/ogpo/square.sh
+@@ -162,6 +162,13 @@ ep_resume=0
+ log=true
+ plot_q_vs_mc=false
+ 
++# IMPRINT episode memory (memory_critic: imprint_bridge/ogpo_hooks.py); none = upstream OGPO
++memory_mode=none              # none | critic | actor_critic
++memory_stage1_dir=null
++memory_ckpt=stage1_stepbest.npz
++memory_feature=mean
++memory_projection=null
++
+ # === Parse CLI overrides ===
+ for arg in "$@"; do
+   case $arg in
+@@ -312,4 +319,9 @@ uv run python ogpo/main.py \
+     --agent.fwd_kl_reg=$fwd_kl_reg \
+     --agent.fwd_kl_bc_coeff=$fwd_kl_bc_coeff \
+     --dataset.p_aug=$p_aug \
+-    --dataset.num_offline_trajs=$num_offline_trajs
++    --dataset.num_offline_trajs=$num_offline_trajs \
++    --memory.mode=$memory_mode \
++    --memory.stage1_dir=$memory_stage1_dir \
++    --memory.ckpt=$memory_ckpt \
++    --memory.feature=$memory_feature \
++    --memory.projection=$memory_projection
