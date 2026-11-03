@@ -8,7 +8,8 @@ One panel per N. In each, one colour per BC dataset size (the same blue ordinal 
           as that eval, π_base draws N SDE chunks per decision and the MC critic (ensemble mean)
           keeps one. Checkpoints every 50k, so the line has markers.
 Lines are the mean over seeds 0, 7, 42 (each seed smoothed first); the band is the min-max of the
-best-of-N line. Missing points are left out and counted in the title.
+best-of-N line. Several --root dirs (one per critic seed) are pooled: the line is the mean over BC
+seeds x critic seeds and the band spans all of them. Missing points are left out and counted in the title.
 
 Writes <out>.png and <out>.json, and prints best-of-N minus BC at the matched checkpoints.
 
@@ -33,7 +34,8 @@ SIZES = (10, 20, 50, 100, 200)
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", default="mh")
-    ap.add_argument("--root", required=True)
+    ap.add_argument("--root", required=True, nargs="+", help="one dir per critic seed; several are pooled")
+    ap.add_argument("--critic_label", default=None, help="title text for the critic, e.g. 'critic seeds 0-2'")
     ap.add_argument("--ns", type=int, nargs="+", default=[4, 8, 16, 32])
     ap.add_argument("--grid", type=int, nargs="+", default=list(range(50000, 500001, 50000)))
     ap.add_argument("--out", required=True)
@@ -56,17 +58,19 @@ def main():
         raw = {s: dict(zip(r["step"], r["sde"])) for s, r in runs.items()}
         return np.array(steps), ys.mean(0), raw
 
+    pairs = [(r, s) for r in args.root for s in SEEDS]   # rows: (critic dir, BC seed)
+
     def bon(n, N):
-        Y = np.full((len(SEEDS), len(grid)), np.nan)
-        for i, s in enumerate(SEEDS):
+        Y = np.full((len(pairs), len(grid)), np.nan)
+        for i, (root, s) in enumerate(pairs):
             for j, t in enumerate(grid):
-                p = os.path.join(args.root, f"square_{ds}_{n}demos_seed{s}_step{t}_sde_bon{N}.json")
+                p = os.path.join(root, f"square_{ds}_{n}demos_seed{s}_step{t}_sde_bon{N}.json")
                 if os.path.exists(p):
                     with open(p) as f:
                         Y[i, j] = 100 * json.load(f)["success_rate"]
         return Y
 
-    total = len(SEEDS) * len(grid) * len(SIZES)
+    total = len(pairs) * len(grid) * len(SIZES)
     data = {N: {n: bon(n, N) for n in SIZES} for N in args.ns}
     have = {N: int(sum((~np.isnan(Y)).sum() for Y in data[N].values())) for N in args.ns}
     print("points: " + ", ".join(f"N={N} {h}/{total}" for N, h in have.items()))
@@ -75,7 +79,7 @@ def main():
     nrows = (len(args.ns) + ncols - 1) // ncols
     fig, axes = plt.subplots(nrows, ncols, figsize=(6.5 * ncols + 1.3 * (ncols == 1) * 2, 4.3 * nrows + 0.8),
                              facecolor=SURFACE, sharex=True, sharey=True, squeeze=False)
-    out_json = {"grid": grid.tolist(), "seeds": SEEDS}
+    out_json = {"grid": grid.tolist(), "rows": [[r, s] for r, s in pairs]}
     for ax, N in zip(axes.ravel(), args.ns):
         for colour, n in zip(RAMP, SIZES):
             x, m, _ = bc(n)
@@ -100,14 +104,16 @@ def main():
     size_l = [f"{n} demos" for n in SIZES][::-1]
     style_h = [Line2D([], [], color=INK2, lw=2, marker="o", ms=4), Line2D([], [], color=INK2, lw=1.4, ls=(0, (4, 2.5)))]
     style_l = ["best-of-N, MC critic", "BC alone (N = 1)"]
+    critic = args.critic_label or ", ".join(os.path.basename(os.path.normpath(r)) for r in args.root)
     right = 0.83 if ncols == 2 else 0.74
     fig.legend(size_h + style_h, size_l + style_l, frameon=False, loc="upper left",
                bbox_to_anchor=(right + 0.005, 0.84 if nrows == 1 else 0.9), labelcolor=INK2)
-    fig.suptitle(f"Flow BC on square-{ds}: SDE success vs BC steps, best-of-N with the no-memory MC critic\n"
-                 "mean of seeds 0, 7, 42 (3-point smoothed); band = min-max of best-of-N;" + ("\n" if ncols == 1 else " ") +
+    fig.suptitle(f"Flow BC on square-{ds}: SDE success vs BC steps, best-of-N with the no-memory MC critic ({critic})\n"
+                 + ("mean of BC seeds 0, 7, 42 x critic seeds" if len(args.root) > 1 else "mean of seeds 0, 7, 42")
+                 + " (3-point smoothed); band = min-max of best-of-N;\n"
                  "64 episodes per point on the eval's start states; both lines use the SDE sampler",
                  x=0.06, ha="left", color=INK, fontsize=11.5 if ncols == 2 else 10.5)
-    fig.tight_layout(rect=(0, 0, right, 0.84 if nrows == 1 else 0.93))
+    fig.tight_layout(rect=(0, 0, right, 0.84 if nrows == 1 else 0.915))
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     fig.savefig(args.out + ".png", dpi=170, facecolor=SURFACE)
     with open(args.out + ".json", "w") as f:
@@ -116,7 +122,7 @@ def main():
     for n in SIZES:
         _, _, raw = bc(n)
         for N in args.ns:
-            d = [(Y, raw[s].get(int(t))) for i, s in enumerate(SEEDS) for j, t in enumerate(grid)
+            d = [(Y, raw[s].get(int(t))) for i, (_, s) in enumerate(pairs) for j, t in enumerate(grid)
                  for Y in [data[N][n][i, j]] if not np.isnan(Y) and raw.get(s, {}).get(int(t)) is not None]
             if d:
                 b = np.array([y for y, _ in d]); a = 100 * np.array([z for _, z in d])
